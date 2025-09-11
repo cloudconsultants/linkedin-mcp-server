@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def register_job_tools(mcp: FastMCP) -> None:
     """
     Register job-related tools with the MCP server.
-    
+
     Note: Job tools are temporarily unavailable during Playwright migration.
     Will be reimplemented in a future release.
 
@@ -36,13 +36,15 @@ def register_job_tools(mcp: FastMCP) -> None:
         Returns:
             Dict[str, Any]: Error response indicating feature not available
         """
-        logger.warning("Job details scraping temporarily unavailable during Playwright migration")
+        logger.warning(
+            "Job details scraping temporarily unavailable during Playwright migration"
+        )
         return {
             "error": "feature_not_available",
             "message": "Job details scraping is temporarily unavailable during migration to Playwright",
             "resolution": "Use person profile tools instead, or wait for future release with job support",
             "requested_job_id": job_id,
-            "status": "migration_in_progress"
+            "status": "migration_in_progress",
         }
 
     @mcp.tool()
@@ -57,13 +59,15 @@ def register_job_tools(mcp: FastMCP) -> None:
             List[Dict[str, Any]]: Error response indicating feature not available
         """
         logger.warning("Job search temporarily unavailable during Playwright migration")
-        return [{
-            "error": "feature_not_available",
-            "message": "Job search is temporarily unavailable during migration to Playwright",
-            "resolution": "Use person profile tools instead, or wait for future release with job support",
-            "search_term": search_term,
-            "status": "migration_in_progress"
-        }]
+        return [
+            {
+                "error": "feature_not_available",
+                "message": "Job search is temporarily unavailable during migration to Playwright",
+                "resolution": "Use person profile tools instead, or wait for future release with job support",
+                "search_term": search_term,
+                "status": "migration_in_progress",
+            }
+        ]
 
     @mcp.tool()
     async def get_recommended_jobs() -> List[Dict[str, Any]]:
@@ -73,10 +77,14 @@ def register_job_tools(mcp: FastMCP) -> None:
         Returns:
             List[Dict[str, Any]]: Error response indicating feature not available
         """
-        logger.warning("Recommended jobs temporarily unavailable during Playwright migration")
-        return [{
-            "error": "feature_not_available",
-            "message": "Recommended jobs are temporarily unavailable during migration to Playwright",
-            "resolution": "Use person profile tools instead, or wait for future release with job support",
-            "status": "migration_in_progress"
-        }]
+        logger.warning(
+            "Recommended jobs temporarily unavailable during Playwright migration"
+        )
+        return [
+            {
+                "error": "feature_not_available",
+                "message": "Recommended jobs are temporarily unavailable during migration to Playwright",
+                "resolution": "Use person profile tools instead, or wait for future release with job support",
+                "status": "migration_in_progress",
+            }
+        ]

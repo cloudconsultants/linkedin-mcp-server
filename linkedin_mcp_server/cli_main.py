@@ -348,6 +348,7 @@ def main() -> None:
     # Phase 2: Initialize Playwright Session (if not lazy)
     try:
         import asyncio
+
         asyncio.run(initialize_session_with_auth(authentication))
     except InvalidCredentialsError as e:
         logger.error(f"Session initialization failed with invalid credentials: {e}")
@@ -437,6 +438,7 @@ def exit_gracefully(exit_code: int = 0) -> None:
 
     # Clean up Playwright sessions
     import asyncio
+
     try:
         asyncio.run(PlaywrightSessionManager.close_all_sessions())
     except Exception as e:

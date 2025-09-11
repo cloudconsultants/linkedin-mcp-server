@@ -28,7 +28,10 @@ from linkedin_mcp_server.exceptions import (
 
 # Import Playwright exceptions for additional error handling
 try:
-    from playwright._impl._errors import Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError
+    from playwright._impl._errors import (
+        Error as PlaywrightError,
+        TimeoutError as PlaywrightTimeoutError,
+    )
 except ImportError:
     # Fallback if playwright not installed yet
     PlaywrightError: type[Exception] = Exception
@@ -89,7 +92,7 @@ def convert_exception_to_response(
     # Handle invalid credentials (fast-linkedin-scraper)
     elif isinstance(exception, FastInvalidCredentialsError):
         return {
-            "error": "invalid_credentials", 
+            "error": "invalid_credentials",
             "message": str(exception),
             "resolution": "Check your LinkedIn cookie - it may be expired or invalid",
         }
@@ -137,7 +140,7 @@ def convert_exception_to_response(
 
     elif isinstance(exception, PlaywrightError):
         error_msg = str(exception)
-        
+
         # Handle specific Playwright error patterns
         if "net::ERR_NETWORK_CHANGED" in error_msg:
             return {

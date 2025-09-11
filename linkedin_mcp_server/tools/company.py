@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def register_company_tools(mcp: FastMCP) -> None:
     """
     Register company-related tools with the MCP server.
-    
+
     Note: Company tools are temporarily unavailable during Playwright migration.
     Will be reimplemented in a future release.
 
@@ -39,11 +39,13 @@ def register_company_tools(mcp: FastMCP) -> None:
         Returns:
             Dict[str, Any]: Error response indicating feature not available
         """
-        logger.warning("Company profile scraping temporarily unavailable during Playwright migration")
+        logger.warning(
+            "Company profile scraping temporarily unavailable during Playwright migration"
+        )
         return {
             "error": "feature_not_available",
             "message": "Company profile scraping is temporarily unavailable during migration to Playwright",
             "resolution": "Use person profile tools instead, or wait for future release with company support",
             "requested_company": company_name,
-            "status": "migration_in_progress"
+            "status": "migration_in_progress",
         }

@@ -44,9 +44,11 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
         session = await safe_get_session()
 
         logger.info(f"Scraping minimal profile: {linkedin_url}")
-        
+
         # Use MINIMAL fields for fast scraping (~2-5 seconds)
-        person = await session.get_profile(linkedin_url, fields=PersonScrapingFields.MINIMAL)
+        person = await session.get_profile(
+            linkedin_url, fields=PersonScrapingFields.MINIMAL
+        )
 
         # Convert Pydantic model to dict
         result = person.model_dump()
@@ -58,9 +60,11 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
             "location": result.get("location"),
             "about": result.get("about", []),
             "company": result.get("company"),
-            "job_title": result.get("headline"),  # Map headline to job_title for compatibility
+            "job_title": result.get(
+                "headline"
+            ),  # Map headline to job_title for compatibility
             "open_to_work": result.get("open_to_work", False),
-            "scraping_mode": "minimal"
+            "scraping_mode": "minimal",
         }
 
     except Exception as e:
@@ -92,9 +96,11 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
         session = await safe_get_session()
 
         logger.info(f"Scraping comprehensive profile: {linkedin_url}")
-        
+
         # Use ALL fields for comprehensive scraping (~30 seconds)
-        person = await session.get_profile(linkedin_url, fields=PersonScrapingFields.ALL)
+        person = await session.get_profile(
+            linkedin_url, fields=PersonScrapingFields.ALL
+        )
 
         # Convert Pydantic model to dict
         result = person.model_dump()
@@ -102,26 +108,34 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
         # Transform experiences to match exact testdata format
         experiences: List[Dict[str, Any]] = []
         for exp in result.get("experiences", []):
-            experiences.append({
-                "position_title": exp.get("position_title", ""),
-                "company": exp.get("institution_name", ""),  # Map institution_name to company
-                "from_date": exp.get("from_date", ""),
-                "to_date": exp.get("to_date", ""),
-                "duration": exp.get("duration", ""),
-                "location": exp.get("location", ""),
-                "description": exp.get("description", ""),
-            })
+            experiences.append(
+                {
+                    "position_title": exp.get("position_title", ""),
+                    "company": exp.get(
+                        "institution_name", ""
+                    ),  # Map institution_name to company
+                    "from_date": exp.get("from_date", ""),
+                    "to_date": exp.get("to_date", ""),
+                    "duration": exp.get("duration", ""),
+                    "location": exp.get("location", ""),
+                    "description": exp.get("description", ""),
+                }
+            )
 
         # Transform educations to match exact testdata format
         educations: List[Dict[str, Any]] = []
         for edu in result.get("educations", []):
-            educations.append({
-                "institution": edu.get("institution_name", ""),  # Map institution_name to institution
-                "degree": edu.get("degree", ""),
-                "from_date": edu.get("from_date"),
-                "to_date": edu.get("to_date"),
-                "description": edu.get("description", ""),
-            })
+            educations.append(
+                {
+                    "institution": edu.get(
+                        "institution_name", ""
+                    ),  # Map institution_name to institution
+                    "degree": edu.get("degree", ""),
+                    "from_date": edu.get("from_date"),
+                    "to_date": edu.get("to_date"),
+                    "description": edu.get("description", ""),
+                }
+            )
 
         # Transform interests to match testdata format (list of strings)
         interests: List[str] = []
@@ -133,41 +147,45 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
 
         # Transform accomplishments - combine honors and languages
         accomplishments: List[Dict[str, str]] = []
-        
+
         # Add honors
         for honor in result.get("honors", []):
-            accomplishments.append({
-                "category": "Honor",
-                "title": honor.get("title", "")
-            })
-        
+            accomplishments.append(
+                {"category": "Honor", "title": honor.get("title", "")}
+            )
+
         # Add languages
         for language in result.get("languages", []):
-            accomplishments.append({
-                "category": "Language",
-                "title": language.get("name", "")
-            })
+            accomplishments.append(
+                {"category": "Language", "title": language.get("name", "")}
+            )
 
         # Transform contacts/connections
         contacts: List[Dict[str, str]] = []
         for contact in result.get("connections", []):
-            contacts.append({
-                "name": contact.get("name", ""),
-                "occupation": contact.get("occupation", ""),
-                "url": contact.get("url", ""),
-            })
+            contacts.append(
+                {
+                    "name": contact.get("name", ""),
+                    "occupation": contact.get("occupation", ""),
+                    "url": contact.get("url", ""),
+                }
+            )
 
         # Return in exact testdata/testscrape.txt format
         return {
             "name": result.get("name"),
-            "about": result.get("about") if result.get("about") else None,  # Match null format from testdata
+            "about": result.get("about")
+            if result.get("about")
+            else None,  # Match null format from testdata
             "experiences": experiences,
             "educations": educations,
             "interests": interests,
             "accomplishments": accomplishments,
             "contacts": contacts,
             "company": result.get("company"),
-            "job_title": result.get("headline"),  # Map headline to job_title for compatibility
+            "job_title": result.get(
+                "headline"
+            ),  # Map headline to job_title for compatibility
             "open_to_work": result.get("open_to_work", False),
         }
 
