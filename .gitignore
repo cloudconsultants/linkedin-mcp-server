@@ -197,3 +197,8 @@ cython_debug/
 # claude code settings
 .claude
 CLAUDE.md
+
+# Project documentation and planning artifacts
+PRPs/
+docs/
+testdata/

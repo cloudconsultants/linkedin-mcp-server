@@ -10,20 +10,16 @@ import logging
 from typing import Any, Dict, List
 
 from fastmcp import FastMCP
-from linkedin_scraper import Job, JobSearch
-
-from linkedin_mcp_server.error_handler import (
-    handle_tool_error,
-    handle_tool_error_list,
-    safe_get_driver,
-)
 
 logger = logging.getLogger(__name__)
 
 
 def register_job_tools(mcp: FastMCP) -> None:
     """
-    Register all job-related tools with the MCP server.
+    Register job-related tools with the MCP server.
+    
+    Note: Job tools are temporarily unavailable during Playwright migration.
+    Will be reimplemented in a future release.
 
     Args:
         mcp (FastMCP): The MCP server instance
@@ -38,22 +34,16 @@ def register_job_tools(mcp: FastMCP) -> None:
             job_id (str): LinkedIn job ID (e.g., "4252026496", "3856789012")
 
         Returns:
-            Dict[str, Any]: Structured job data including title, company, location, posting date,
-                          application count, and job description (may be empty if content is protected)
+            Dict[str, Any]: Error response indicating feature not available
         """
-        try:
-            # Construct clean LinkedIn URL from job ID
-            job_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
-
-            driver = safe_get_driver()
-
-            logger.info(f"Scraping job: {job_url}")
-            job = Job(job_url, driver=driver, close_on_complete=False)
-
-            # Convert job object to a dictionary
-            return job.to_dict()
-        except Exception as e:
-            return handle_tool_error(e, "get_job_details")
+        logger.warning("Job details scraping temporarily unavailable during Playwright migration")
+        return {
+            "error": "feature_not_available",
+            "message": "Job details scraping is temporarily unavailable during migration to Playwright",
+            "resolution": "Use person profile tools instead, or wait for future release with job support",
+            "requested_job_id": job_id,
+            "status": "migration_in_progress"
+        }
 
     @mcp.tool()
     async def search_jobs(search_term: str) -> List[Dict[str, Any]]:
@@ -64,42 +54,29 @@ def register_job_tools(mcp: FastMCP) -> None:
             search_term (str): Search term to use for the job search.
 
         Returns:
-            List[Dict[str, Any]]: List of job search results
+            List[Dict[str, Any]]: Error response indicating feature not available
         """
-        try:
-            driver = safe_get_driver()
-
-            logger.info(f"Searching jobs: {search_term}")
-            job_search = JobSearch(driver=driver, close_on_complete=False, scrape=False)
-            jobs = job_search.search(search_term)
-
-            # Convert job objects to dictionaries
-            return [job.to_dict() for job in jobs]
-        except Exception as e:
-            return handle_tool_error_list(e, "search_jobs")
+        logger.warning("Job search temporarily unavailable during Playwright migration")
+        return [{
+            "error": "feature_not_available",
+            "message": "Job search is temporarily unavailable during migration to Playwright",
+            "resolution": "Use person profile tools instead, or wait for future release with job support",
+            "search_term": search_term,
+            "status": "migration_in_progress"
+        }]
 
     @mcp.tool()
     async def get_recommended_jobs() -> List[Dict[str, Any]]:
         """
-        Get your personalized recommended jobs from LinkedIn
+        Get LinkedIn recommended jobs for the authenticated user.
 
         Returns:
-            List[Dict[str, Any]]: List of recommended jobs
+            List[Dict[str, Any]]: Error response indicating feature not available
         """
-        try:
-            driver = safe_get_driver()
-
-            logger.info("Getting recommended jobs")
-            job_search = JobSearch(
-                driver=driver,
-                close_on_complete=False,
-                scrape=True,  # Enable scraping to get recommended jobs
-                scrape_recommended_jobs=True,
-            )
-
-            if hasattr(job_search, "recommended_jobs") and job_search.recommended_jobs:
-                return [job.to_dict() for job in job_search.recommended_jobs]
-            else:
-                return []
-        except Exception as e:
-            return handle_tool_error_list(e, "get_recommended_jobs")
+        logger.warning("Recommended jobs temporarily unavailable during Playwright migration")
+        return [{
+            "error": "feature_not_available",
+            "message": "Recommended jobs are temporarily unavailable during migration to Playwright",
+            "resolution": "Use person profile tools instead, or wait for future release with job support",
+            "status": "migration_in_progress"
+        }]

@@ -10,19 +10,29 @@ Eliminates code duplication while ensuring user-friendly error messages.
 import logging
 from typing import Any, Dict, List
 
-from linkedin_scraper.exceptions import (
-    CaptchaRequiredError,
-    InvalidCredentialsError,
-    LoginTimeoutError,
-    RateLimitError,
-    SecurityChallengeError,
-    TwoFactorAuthError,
+# Import fast-linkedin-scraper exceptions
+from linkedin_mcp_server.scraper.exceptions import (
+    InvalidCredentialsError as FastInvalidCredentialsError,
+    RateLimitError as FastRateLimitError,
+    SecurityChallengeError as FastSecurityChallengeError,
+    LoginTimeoutError as FastLoginTimeoutError,
+    CredentialsNotFoundError as FastCredentialsNotFoundError,
+    DriverInitializationError,
+    LinkedInScraperError,
 )
 
 from linkedin_mcp_server.exceptions import (
     CredentialsNotFoundError,
     LinkedInMCPError,
 )
+
+# Import Playwright exceptions for additional error handling
+try:
+    from playwright._impl._errors import Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError
+except ImportError:
+    # Fallback if playwright not installed yet
+    PlaywrightError: type[Exception] = Exception
+    PlaywrightTimeoutError: type[Exception] = Exception
 
 
 def handle_tool_error(exception: Exception, context: str = "") -> Dict[str, Any]:
@@ -59,7 +69,7 @@ def convert_exception_to_response(
     exception: Exception, context: str = ""
 ) -> Dict[str, Any]:
     """
-    Convert an exception to a structured MCP response.
+    Convert an exception to a structured MCP response with Playwright support.
 
     Args:
         exception: The exception to convert
@@ -68,62 +78,106 @@ def convert_exception_to_response(
     Returns:
         Structured error response dictionary
     """
-    if isinstance(exception, CredentialsNotFoundError):
+    # Handle credentials not found (both old and new)
+    if isinstance(exception, (CredentialsNotFoundError, FastCredentialsNotFoundError)):
         return {
             "error": "authentication_not_found",
             "message": str(exception),
             "resolution": "Provide LinkedIn cookie via LINKEDIN_COOKIE environment variable or run setup",
         }
 
-    elif isinstance(exception, InvalidCredentialsError):
+    # Handle invalid credentials (fast-linkedin-scraper)
+    elif isinstance(exception, FastInvalidCredentialsError):
         return {
-            "error": "invalid_credentials",
+            "error": "invalid_credentials", 
             "message": str(exception),
-            "resolution": "Check your LinkedIn email and password",
+            "resolution": "Check your LinkedIn cookie - it may be expired or invalid",
         }
 
-    elif isinstance(exception, CaptchaRequiredError):
-        return {
-            "error": "captcha_required",
-            "message": str(exception),
-            "captcha_url": exception.captcha_url,
-            "resolution": "Complete the captcha challenge manually",
-        }
-
-    elif isinstance(exception, SecurityChallengeError):
+    # Handle security challenges (fast-linkedin-scraper)
+    elif isinstance(exception, FastSecurityChallengeError):
         return {
             "error": "security_challenge_required",
             "message": str(exception),
             "challenge_url": getattr(exception, "challenge_url", None),
-            "resolution": "Complete the security challenge manually",
+            "resolution": "Complete the security challenge manually and try again",
         }
 
-    elif isinstance(exception, TwoFactorAuthError):
-        return {
-            "error": "two_factor_auth_required",
-            "message": str(exception),
-            "resolution": "Complete 2FA verification",
-        }
-
-    elif isinstance(exception, RateLimitError):
+    # Handle rate limiting (fast-linkedin-scraper)
+    elif isinstance(exception, FastRateLimitError):
         return {
             "error": "rate_limit",
             "message": str(exception),
-            "resolution": "Wait before attempting to login again",
+            "resolution": "Wait before attempting to scrape again - LinkedIn has temporarily blocked requests",
         }
 
-    elif isinstance(exception, LoginTimeoutError):
+    # Handle login timeouts (fast-linkedin-scraper)
+    elif isinstance(exception, FastLoginTimeoutError):
         return {
             "error": "login_timeout",
             "message": str(exception),
-            "resolution": "Check network connection and try again",
+            "resolution": "Check network connection and try again - LinkedIn login process timed out",
         }
 
+    # Handle driver initialization errors
+    elif isinstance(exception, DriverInitializationError):
+        return {
+            "error": "browser_initialization_failed",
+            "message": str(exception),
+            "resolution": "Ensure Playwright browsers are installed: python -m playwright install",
+        }
+
+    # Handle Playwright-specific errors
+    elif isinstance(exception, PlaywrightTimeoutError):
+        return {
+            "error": "playwright_timeout",
+            "message": f"Page load or interaction timed out: {str(exception)}",
+            "resolution": "LinkedIn may be slow or blocking requests. Wait and retry.",
+        }
+
+    elif isinstance(exception, PlaywrightError):
+        error_msg = str(exception)
+        
+        # Handle specific Playwright error patterns
+        if "net::ERR_NETWORK_CHANGED" in error_msg:
+            return {
+                "error": "network_error",
+                "message": "Network connection interrupted during scraping",
+                "resolution": "Check network connectivity and try again",
+            }
+        elif "Target page, context or browser has been closed" in error_msg:
+            return {
+                "error": "session_closed",
+                "message": "Browser session was unexpectedly closed",
+                "resolution": "Session will be recreated on next request",
+            }
+        elif "Timeout" in error_msg and "linkedin.com" in error_msg:
+            return {
+                "error": "linkedin_timeout",
+                "message": f"LinkedIn page took too long to load: {error_msg}",
+                "resolution": "LinkedIn may be slow or blocking requests. Wait and retry.",
+            }
+        else:
+            return {
+                "error": "playwright_error",
+                "message": f"Browser automation error: {error_msg}",
+                "resolution": "Try again or check if LinkedIn is accessible",
+            }
+
+    # Handle general LinkedIn scraper errors
+    elif isinstance(exception, LinkedInScraperError):
+        return {
+            "error": "linkedin_scraper_error",
+            "message": str(exception),
+            "resolution": "LinkedIn scraping encountered an error - try again or check your session",
+        }
+
+    # Handle legacy MCP errors
     elif isinstance(exception, LinkedInMCPError):
         return {"error": "linkedin_error", "message": str(exception)}
 
     else:
-        # Generic error handling with structured logging
+        # Generic error handling with enhanced logging
         logger = logging.getLogger(__name__)
         logger.error(
             f"Error in {context}: {exception}",
@@ -136,6 +190,7 @@ def convert_exception_to_response(
         return {
             "error": "unknown_error",
             "message": f"Failed to execute {context}: {str(exception)}",
+            "resolution": "Check logs for more details and try again",
         }
 
 
@@ -158,23 +213,23 @@ def convert_exception_to_list_response(
     return [convert_exception_to_response(exception, context)]
 
 
-def safe_get_driver():
+async def safe_get_session():
     """
-    Safely get or create a driver with proper error handling.
+    Safely get or create a LinkedIn session with proper error handling.
 
     Returns:
-        Driver instance
+        LinkedInSession: Authenticated session instance
 
     Raises:
-        LinkedInMCPError: If driver initialization fails
+        LinkedInMCPError: If session initialization fails
     """
     from linkedin_mcp_server.authentication import ensure_authentication
-    from linkedin_mcp_server.drivers.chrome import get_or_create_driver
+    from linkedin_mcp_server.session.manager import PlaywrightSessionManager
 
     # Get authentication first
     authentication = ensure_authentication()
 
-    # Create driver with authentication
-    driver = get_or_create_driver(authentication)
+    # Create session with authentication
+    session = await PlaywrightSessionManager.get_or_create_session(authentication)
 
-    return driver
+    return session

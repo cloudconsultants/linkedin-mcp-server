@@ -8,7 +8,11 @@ dependencies = [
     "fastmcp>=2.10.1",
     "inquirer>=3.4.0",
     "keyring>=25.6.0",
-    "linkedin-scraper",
+    "playwright>=1.53.0",
+    "pydantic>=2.11.7",
+    "python-dotenv>=1.1.1",
+    "rapidfuzz>=3.13.0",
+    "suffix-trees>=0.3.0",
     "pyperclip>=1.9.0",
 ]
 
@@ -26,8 +30,7 @@ exclude = ["assets*", "docs*", "tests*"]
 [tool.setuptools.package-data]
 linkedin_mcp_server = ["py.typed"]
 
-[tool.uv.sources]
-linkedin-scraper = { git = "https://github.com/stickerdaniel/linkedin_scraper.git" }
+
 
 [dependency-groups]
 dev = [
