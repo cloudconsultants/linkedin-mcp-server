@@ -20,6 +20,7 @@ from linkedin_mcp_server.scraper.exceptions import (
     LoginTimeoutError,
     RateLimitError,
     SecurityChallengeError,
+    CredentialsNotFoundError as ScraperCredentialsNotFoundError,
 )
 
 from linkedin_mcp_server.cli import print_claude_config
@@ -87,7 +88,7 @@ def clear_keychain_and_exit() -> None:
 
     # Show confirmation prompt for existing items only
     keyring_name = get_keyring_name()
-    print(f"\n🔑 Clear LinkedIn data from {keyring_name}?")
+    print(f"🔑 Clear LinkedIn data from {keyring_name}?")
     print("This will remove:")
 
     items_to_remove = []
@@ -134,7 +135,7 @@ def clear_keychain_and_exit() -> None:
 
     except Exception as e:
         logger.error(f"Error clearing keychain: {e}")
-        print(f"\n❌ Error clearing keychain: {e}")
+        print(f"❌ Error clearing keychain: {e}")
         sys.exit(1)
 
     sys.exit(0)
@@ -156,10 +157,8 @@ def get_cookie_and_exit() -> None:
     logger.info(f"LinkedIn MCP Server v{version} - Cookie Extraction mode started")
 
     try:
-        # Run cookie extraction setup with asyncio
-        import asyncio
-
-        cookie = asyncio.run(run_cookie_extraction_setup())
+        # Run cookie extraction setup
+        cookie = run_cookie_extraction_setup()
 
         logger.info("Cookie extraction successful")
         print("✅ Login successful!")
@@ -264,7 +263,7 @@ async def initialize_session_with_auth(authentication: str) -> None:
 
     try:
         # Create session and login with provided authentication
-        await PlaywrightSessionManager.get_or_create_session(
+        session = await PlaywrightSessionManager.get_or_create_session(
             authentication, headless=config.chrome.headless
         )
         logger.info("✅ Playwright session initialized and authenticated successfully")
@@ -307,7 +306,7 @@ def main() -> None:
 
     # Only print banner in interactive mode (to avoid interfering with MCP protocol)
     if config.is_interactive:
-        print(f"\n🔗 LinkedIn MCP Server v{version} 🔗")
+        print(f"🔗 LinkedIn MCP Server v{version} 🔗")
         print("=" * 40)
 
     # Always log version (this goes to stderr/logging, not stdout)
@@ -350,7 +349,6 @@ def main() -> None:
     # Phase 2: Initialize Playwright Session (if not lazy)
     try:
         import asyncio
-
         asyncio.run(initialize_session_with_auth(authentication))
     except InvalidCredentialsError as e:
         logger.error(f"Session initialization failed with invalid credentials: {e}")
@@ -358,7 +356,8 @@ def main() -> None:
         # Cookie was already cleared in session layer
         # In interactive mode, try setup again
         if config.is_interactive:
-            print(f"\n❌ {str(e)}")
+            print(f"
+❌ {str(e)}")
             print("🔄 Starting interactive setup for new authentication...")
             try:
                 new_authentication = run_interactive_setup()
@@ -367,9 +366,12 @@ def main() -> None:
                 logger.info("✅ Successfully authenticated with new credentials")
             except Exception as setup_error:
                 logger.error(f"Setup failed: {setup_error}")
-                print(f"\n❌ Setup failed: {setup_error}")
+                print(f"
+❌ Setup failed: {setup_error}")
+                sys.exit(1)
         else:
-            print(f"\n❌ {str(e)}")
+            print(f"
+❌ {str(e)}")
             if not config.server.lazy_init:
                 sys.exit(1)
     except (
@@ -379,12 +381,14 @@ def main() -> None:
         LoginTimeoutError,
     ) as e:
         logger.error(f"Session initialization failed: {e}")
-        print(f"\n❌ {str(e)}")
+        print(f"
+❌ {str(e)}")
         if not config.server.lazy_init:
             sys.exit(1)
     except Exception as e:
         logger.error(f"Unexpected error during session initialization: {e}")
-        print(f"\n❌ Session initialization failed: {e}")
+        print(f"
+❌ Session initialization failed: {e}")
         if not config.server.lazy_init:
             sys.exit(1)
 
@@ -411,7 +415,7 @@ def main() -> None:
         mcp = create_mcp_server()
 
         # Start server
-        print(f"\n\n🚀 Running LinkedIn MCP server ({transport.upper()} mode)...")
+        print(f"\n🚀 Running LinkedIn MCP server ({transport.upper()} mode)...")
         if transport == "streamable-http":
             print(
                 f"📡 HTTP server will be available at http://{config.server.host}:{config.server.port}{config.server.path}"
@@ -430,7 +434,7 @@ def main() -> None:
         exit_gracefully(0)
     except Exception as e:
         logger.error(f"Server runtime error: {e}")
-        print(f"\n\n❌ Server error: {e}")
+        print(f"\n❌ Server error: {e}")
         exit_gracefully(1)
 
 
@@ -440,7 +444,6 @@ def exit_gracefully(exit_code: int = 0) -> None:
 
     # Clean up Playwright sessions
     import asyncio
-
     try:
         asyncio.run(PlaywrightSessionManager.close_all_sessions())
     except Exception as e:
@@ -462,5 +465,5 @@ if __name__ == "__main__":
             f"Error running MCP server: {e}",
             extra={"exception_type": type(e).__name__, "exception_message": str(e)},
         )
-        print(f"\n❌ Error running MCP server: {e}")
+        print(f"❌ Error running MCP server: {e}")
         exit_gracefully(1)
