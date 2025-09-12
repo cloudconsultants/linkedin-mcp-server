@@ -1,7 +1,10 @@
+import logging
 from playwright.async_api import BrowserContext, Page
 
 from ..exceptions import InvalidCredentialsError
 from .base import LinkedInAuth
+
+logger = logging.getLogger(__name__)
 
 
 class CookieAuth(LinkedInAuth):
@@ -60,12 +63,16 @@ class CookieAuth(LinkedInAuth):
             LoginTimeoutError: Authentication process timed out
         """
         try:
-            # Try to navigate to LinkedIn feed page (cookie is already set in context)
-            await page.goto(
-                "https://www.linkedin.com/feed/",
-                wait_until="domcontentloaded",
-                # this will throw an error if the cookie is invalid
+            # Import here to avoid circular imports
+            from linkedin_mcp_server.scraper.browser.behavioral import (
+                warm_linkedin_session,
             )
+            from linkedin_mcp_server.scraper.config import StealthConfig
+
+            # Warm the session AFTER cookies are set
+            logger.info("Warming LinkedIn session with authentication...")
+            stealth_config = StealthConfig()
+            await warm_linkedin_session(page, stealth_config)
 
             # At this point, if we're logged in, we're good
             if await self.is_logged_in(page):

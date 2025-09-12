@@ -21,8 +21,9 @@ COPY uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-# CRITICAL: Install only headless Chromium browser for runtime (smaller)
-RUN uv run patchright install chromium-headless-shell
+# Install Patchright browsers (will use system Chrome installed in runtime-deps stage)
+RUN uv run patchright install chrome || \
+    echo "Chrome will be provided by system installation"
 
 # Pre-compile Python bytecode for faster startup
 RUN python -m compileall /build/.venv
@@ -30,10 +31,13 @@ RUN python -m compileall /build/.venv
 # ====== STAGE 2: MINIMAL RUNTIME DEPS ======
 FROM python:3.12-slim AS runtime-deps
 
-# Install MINIMAL system dependencies for browser automation
+# Install system dependencies for browser automation AND Chrome
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
-    # Minimal dependencies for headless Chromium
+    curl \
+    wget \
+    gnupg \
+    # Dependencies for Chrome/Chromium
     libnss3 \
     libatk-bridge2.0-0 \
     libdrm2 \
@@ -46,14 +50,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxkbcommon0 \
     libatspi2.0-0 \
     libxfixes3 \
+    libgtk-3-0 \
+    libx11-xcb1 \
+    libxcb-dri3-0 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install Google Chrome (required for Patchright stealth mode with channel:"chrome")
+# This adds ~100MB but is necessary for proper LinkedIn scraping
+RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends google-chrome-stable \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
 # ====== STAGE 3: RUNTIME ======
 FROM runtime-deps AS runtime
 
-# Create non-root user (pattern from existing Dockerfiles)
-RUN useradd -m -u 1000 mcpuser
+# Create non-root user with proper home directory for keyring storage
+RUN useradd -m -u 1000 mcpuser \
+    && mkdir -p /home/mcpuser/.local/share/python_keyring \
+    && chown -R mcpuser:mcpuser /home/mcpuser/.local
 
 WORKDIR /app
 
@@ -67,6 +85,8 @@ COPY --from=builder --chown=mcpuser:mcpuser /root/.cache/ms-playwright /home/mcp
 COPY --chown=mcpuser:mcpuser linkedin_mcp_server /app/linkedin_mcp_server
 COPY --chown=mcpuser:mcpuser pyproject.toml /app/
 COPY --chown=mcpuser:mcpuser README.md LICENSE /app/
+COPY --chown=mcpuser:mcpuser docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Switch to non-root user
 USER mcpuser
@@ -80,12 +100,16 @@ ENV PATH="/app/.venv/bin:$PATH" \
     # Docker runtime flag for configuration adjustments
     DOCKER_RUNTIME=1 \
     # Optimize Python
-    PYTHONOPTIMIZE=1
+    PYTHONOPTIMIZE=1 \
+    # Configure keyring to use file backend in Docker (no system keyring available)
+    PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring \
+    # Set keyring directory for file-based storage
+    XDG_DATA_HOME=/home/mcpuser/.local/share
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import linkedin_mcp_server; print('OK')" || exit 1
 
-# Entrypoint (pattern from existing Dockerfiles)
-ENTRYPOINT ["python", "-m", "linkedin_mcp_server"]
+# Entrypoint with proper authentication handling
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD []

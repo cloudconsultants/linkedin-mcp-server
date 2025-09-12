@@ -673,6 +673,19 @@ wheels = [
 ]
 
 [[package]]
+name = "keyrings-alt"
+version = "5.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jaraco-classes" },
+    { name = "jaraco-context" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5c/7b/e3bf53326e0753bee11813337b1391179582ba5c6851b13e0d9502d15a50/keyrings_alt-5.0.2.tar.gz", hash = "sha256:8f097ebe9dc8b185106502b8cdb066c926d2180e13b4689fd4771a3eab7d69fb", size = 29229, upload-time = "2024-08-14T01:09:28.12Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/0d/9c59313ab43d0858a9a665e80763bd830dc78d5f379afc3815e123c486c2/keyrings.alt-5.0.2-py3-none-any.whl", hash = "sha256:6be74693192f3f37bbb752bfac9b86e6177076b17d2ac12a390f1d6abff8ac7c", size = 17930, upload-time = "2024-08-14T01:09:26.785Z" },
+]
+
+[[package]]
 name = "linkedin-mcp-server"
 version = "1.4.0"
 source = { editable = "." }
@@ -682,6 +695,7 @@ dependencies = [
     { name = "fastmcp" },
     { name = "inquirer" },
     { name = "keyring" },
+    { name = "keyrings-alt" },
     { name = "patchright" },
     { name = "playwright" },
     { name = "pydantic" },
@@ -709,6 +723,7 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=2.10.1" },
     { name = "inquirer", specifier = ">=3.4.0" },
     { name = "keyring", specifier = ">=25.6.0" },
+    { name = "keyrings-alt", specifier = ">=5.0.2" },
     { name = "patchright", specifier = ">=1.55.0" },
     { name = "playwright", specifier = ">=1.53.0" },
     { name = "pydantic", specifier = ">=2.11.7" },

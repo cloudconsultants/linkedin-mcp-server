@@ -162,7 +162,11 @@ class LinkedInSession:
     async def __aenter__(self):
         """Context manager entry - initialize browser and authenticate."""
         try:
-            self._browser_session = BrowserContextManager(headless=self._headless)
+            # Disable session warming in context manager - will happen after authentication
+            self._browser_session = BrowserContextManager(
+                headless=self._headless,
+                enable_session_warming=False,  # Critical: warm session AFTER setting cookies
+            )
             self._context = await self._browser_session.__aenter__()
             self._page = await self._auth.login(context=self._context)
             self._authenticated = True
