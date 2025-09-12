@@ -7,10 +7,10 @@ from pydantic import HttpUrl
 from ...config import PersonScrapingFields, LinkedInDetectionError
 from ...models.person import Person
 from ...browser.behavioral import (
-    navigate_to_profile_stealthily, 
+    navigate_to_profile_stealthily,
     simulate_profile_reading_behavior,
     detect_linkedin_challenge,
-    random_delay
+    random_delay,
 )
 from .accomplishments import scrape_accomplishments
 from .contacts import scrape_contacts
@@ -57,14 +57,16 @@ class PersonScraper:
         try:
             # Stealth navigation to profile using search-first approach
             await navigate_to_profile_stealthily(self.page, str(linkedin_url))
-            
+
             # Check for detection after navigation
             if await detect_linkedin_challenge(self.page):
-                raise LinkedInDetectionError("LinkedIn challenge detected during profile access")
-            
+                raise LinkedInDetectionError(
+                    "LinkedIn challenge detected during profile access"
+                )
+
             # Simulate human profile reading behavior
             await simulate_profile_reading_behavior(self.page)
-            
+
             # Add small delay before starting data extraction
             await random_delay(1.0, 2.0)
 
@@ -79,7 +81,9 @@ class PersonScraper:
                 await self.page.goto(str(linkedin_url), wait_until="networkidle")
                 await random_delay(2.0, 4.0)
             except Exception as fallback_error:
-                raise LinkedInDetectionError(f"Both stealth and fallback navigation failed: {fallback_error}")
+                raise LinkedInDetectionError(
+                    f"Both stealth and fallback navigation failed: {fallback_error}"
+                )
 
         # Start data extraction with stealth delays
         logger.debug("Starting data extraction with human-like timing")
@@ -146,8 +150,12 @@ class PersonScraper:
 
         # Final detection check
         if await detect_linkedin_challenge(self.page):
-            logger.warning("Challenge detected after profile scraping - profile may be incomplete")
-            person.scraping_errors["post_scraping_challenge"] = "LinkedIn challenge detected"
+            logger.warning(
+                "Challenge detected after profile scraping - profile may be incomplete"
+            )
+            person.scraping_errors["post_scraping_challenge"] = (
+                "LinkedIn challenge detected"
+            )
 
         logger.info(f"Profile scraping completed for: {url}")
         return person
