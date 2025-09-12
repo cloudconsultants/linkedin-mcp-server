@@ -57,6 +57,9 @@ class ServerConfig:
     host: str = "127.0.0.1"
     port: int = 8000
     path: str = "/mcp"
+    # Debug configuration
+    debug_level: Literal["BASIC", "ENHANCED", "TRACE"] = "BASIC"
+    debug_categories: str = "session"  # Comma-separated categories
 
 
 @dataclass

@@ -19,6 +19,7 @@ import argparse
 import logging
 import os
 import sys
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from .providers import (
@@ -52,6 +53,36 @@ class EnvironmentKeys:
     LOG_LEVEL = "LOG_LEVEL"
     LAZY_INIT = "LAZY_INIT"
     TRANSPORT = "TRANSPORT"
+
+    # Environment file configuration
+    ENV_FILE = "LINKEDIN_ENV_FILE"
+
+    # Debug configuration
+    DEBUG_LEVEL = "LINKEDIN_DEBUG_LEVEL"
+    DEBUG_CATEGORIES = "LINKEDIN_DEBUG_CATEGORIES"
+
+
+def load_env_file(env_file_path: str | None = None) -> None:
+    """Load environment variables from .env file."""
+    try:
+        from dotenv import load_dotenv
+
+        if env_file_path:
+            env_path = Path(env_file_path)
+        else:
+            # Try default locations
+            env_path = Path(".env")
+            if not env_path.exists():
+                env_path = Path(__file__).parent.parent.parent / ".env"
+
+        if env_path.exists():
+            load_dotenv(env_path)
+            logger.info(f"Loaded environment variables from {env_path}")
+        else:
+            logger.debug(f"No .env file found at {env_path}")
+
+    except ImportError:
+        logger.warning("python-dotenv not installed, skipping .env file loading")
 
 
 def find_chromedriver() -> Optional[str]:
@@ -129,6 +160,14 @@ def load_from_env(config: AppConfig) -> AppConfig:
         log_level_upper = log_level_env.upper()
         if log_level_upper in ("DEBUG", "INFO", "WARNING", "ERROR"):
             config.server.log_level = log_level_upper
+
+    # Debug configuration
+    if debug_level_env := os.environ.get(EnvironmentKeys.DEBUG_LEVEL):
+        if debug_level_env.upper() in ("BASIC", "ENHANCED", "TRACE"):
+            config.server.debug_level = debug_level_env.upper()
+
+    if debug_categories_env := os.environ.get(EnvironmentKeys.DEBUG_CATEGORIES):
+        config.server.debug_categories = debug_categories_env
 
     # Headless mode
     if os.environ.get(EnvironmentKeys.HEADLESS) in FALSY_VALUES:
@@ -235,6 +274,24 @@ def load_from_args(config: AppConfig) -> AppConfig:
         help="Specify custom user agent string to prevent anti-scraping detection",
     )
 
+    parser.add_argument(
+        "--env-file",
+        type=str,
+        help="Path to .env file containing environment variables",
+    )
+
+    parser.add_argument(
+        "--debug-level",
+        choices=["BASIC", "ENHANCED", "TRACE"],
+        help="Set debug logging level for troubleshooting (default: BASIC)",
+    )
+
+    parser.add_argument(
+        "--debug-categories",
+        type=str,
+        help="Comma-separated debug categories: session,cookie,browser,linkedin,auth,all",
+    )
+
     args = parser.parse_args()
 
     # Update configuration with parsed arguments
@@ -274,6 +331,17 @@ def load_from_args(config: AppConfig) -> AppConfig:
     if args.user_agent:
         config.chrome.user_agent = args.user_agent
 
+    # Handle .env file argument
+    if args.env_file:
+        load_env_file(args.env_file)
+
+    # Handle debug configuration
+    if args.debug_level:
+        config.server.debug_level = args.debug_level
+
+    if args.debug_categories:
+        config.server.debug_categories = args.debug_categories
+
     return config
 
 
@@ -307,6 +375,10 @@ def load_config() -> AppConfig:
     Raises:
         ConfigurationError: If configuration validation fails
     """
+    # Load .env file first (if available)
+    env_file = os.environ.get(EnvironmentKeys.ENV_FILE)
+    load_env_file(env_file)
+
     # Start with default configuration
     config = AppConfig()
 

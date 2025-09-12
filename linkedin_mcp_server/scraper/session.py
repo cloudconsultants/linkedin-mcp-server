@@ -57,13 +57,26 @@ class LinkedInSession:
         auth = CookieAuth(cookie)
         return cls(auth, headless=headless)
 
-    def is_authenticated(self) -> bool:
-        """Check if session is authenticated.
+    async def is_authenticated(self) -> bool:
+        """Check if session is authenticated with LinkedIn validation.
 
         Returns:
-            True if authenticated, False otherwise
+            True if authenticated and session is valid, False otherwise
         """
-        return self._authenticated and self._page is not None
+        if not self._authenticated or self._page is None:
+            return False
+
+        try:
+            # Validate session by checking LinkedIn feed access
+            await self._page.goto(
+                "https://www.linkedin.com/feed/",
+                wait_until="domcontentloaded",
+                timeout=10000,
+            )
+            # Check if we're actually on LinkedIn (not redirected to login)
+            return "linkedin.com/feed" in self._page.url
+        except Exception:
+            return False
 
     def _ensure_authenticated(self) -> Page:
         """Ensure session is authenticated and return page.
