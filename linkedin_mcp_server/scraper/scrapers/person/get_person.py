@@ -14,8 +14,8 @@ from ...browser.behavioral import (
 )
 from .accomplishments import scrape_accomplishments
 from .contacts import scrape_contacts
-from .education import scrape_educations
-from .experience import scrape_experiences
+from .education import scrape_educations_main_page
+from .experience import scrape_experiences_main_page
 from .interests import scrape_interests
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ class PersonScraper:
         if PersonScrapingFields.EXPERIENCE in fields:
             try:
                 logger.debug("Scraping experience section")
-                await scrape_experiences(self.page, person)
+                await scrape_experiences_main_page(self.page, person)
                 await random_delay(2.0, 4.0)  # Longer delays for section navigation
             except Exception as e:
                 logger.warning(f"Experience scraping failed: {e}")
@@ -115,7 +115,7 @@ class PersonScraper:
         if PersonScrapingFields.EDUCATION in fields:
             try:
                 logger.debug("Scraping education section")
-                await scrape_educations(self.page, person)
+                await scrape_educations_main_page(self.page, person)
                 await random_delay(2.0, 4.0)
             except Exception as e:
                 logger.warning(f"Education scraping failed: {e}")
@@ -161,74 +161,119 @@ class PersonScraper:
         return person
 
     async def _scrape_basic_info(self, person: Person) -> None:
-        """Scrape basic profile information (name, location, about)."""
-        # Get name and location
-        try:
-            top_panel = self.page.locator(".mt2.relative").first
-            name_element = top_panel.locator("h1").first
-            if await name_element.is_visible():
-                person.name = await name_element.inner_text()
-        except Exception:
-            pass
+        """Scrape basic profile information using robust proven selectors."""
+        from .selectors import LinkedInSelectors, PerformanceBenchmark
+        from ...browser.behavioral import simulate_profile_reading_behavior
 
-        try:
-            location_element = self.page.locator(
-                ".text-body-small.inline.t-black--light.break-words"
-            ).first
-            if await location_element.is_visible():
-                person.add_location(await location_element.inner_text())
-        except Exception:
-            pass
+        logger.info("Starting basic info extraction with proven selectors")
 
-        # Get headline - simplified approach based on DOM structure
-        try:
-            # From MCP DOM analysis, the headline appears right after the name
-            # Try multiple selectors that should work universally
-            headline_selectors = [
-                # Direct approach: find h1 then get the next generic element
-                "h1 + div",
-                "h1 ~ div:first-of-type",
-                # Alternative: look in the main profile section
-                ".mt2.relative div:has(h1) + div",
-                # Fallback: find elements that typically contain headlines
-                ".pv-text-details__left-panel > div:nth-child(2)",
-                ".pv-top-card-v2-section-info > div:nth-child(2)",
-            ]
+        with PerformanceBenchmark.time_section("basic_info", logger) as timer:
+            # CRITICAL: Use existing stealth behavior - DO NOT MODIFY
+            await simulate_profile_reading_behavior(self.page)
 
-            for selector in headline_selectors:
-                headline_element = self.page.locator(selector).first
-                if await headline_element.is_visible():
-                    headline_text = (await headline_element.inner_text()).strip()
-                    # Make sure it's not the name and has substantial content
-                    if (
-                        headline_text
-                        and headline_text != person.name
-                        and len(headline_text) > 5
-                        and headline_text not in ["", "null", "undefined"]
-                    ):
-                        person.add_headline(headline_text)
-                        break
-        except Exception:
-            pass
+            # Extract name using proven selector
+            try:
+                name_element = self.page.locator(LinkedInSelectors.PROFILE_NAME).first
+                if await name_element.is_visible():
+                    name_text = (await name_element.inner_text()).strip()
+                    if name_text:
+                        person.name = name_text
+                        logger.debug(f"Extracted name: {name_text}")
+            except Exception as e:
+                logger.warning(f"Name extraction failed: {e}")
 
-        # Get about section - following Selenium approach exactly
-        try:
-            about = (
-                self.page.locator("#about").locator("..").locator(".display-flex").first
-            )
-            if await about.is_visible():
-                about_text = await about.inner_text()
-                person.add_about(about_text)
-        except Exception:
-            pass
+            # Extract headline using proven selector fallback chain
+            try:
+                headline_found = False
+                for selector in LinkedInSelectors.PROFILE_HEADLINE:
+                    try:
+                        headline_element = self.page.locator(selector).first
+                        if await headline_element.is_visible():
+                            headline_text = (
+                                await headline_element.inner_text()
+                            ).strip()
+                            # Validate headline: not empty, not same as name, substantial content
+                            if (
+                                headline_text
+                                and headline_text != person.name
+                                and len(headline_text) > 5
+                                and headline_text not in ["", "null", "undefined"]
+                            ):
+                                person.add_headline(headline_text)
+                                logger.debug(f"Extracted headline: {headline_text}")
+                                headline_found = True
+                                break
+                    except Exception:
+                        continue
 
-        # Check if open to work
-        try:
-            profile_picture = self.page.locator(
-                ".pv-top-card-profile-picture img"
-            ).first
-            if await profile_picture.is_visible():
-                title_attr = await profile_picture.get_attribute("title")
-                person.open_to_work = title_attr and "#OPEN_TO_WORK" in title_attr
-        except Exception:
-            person.open_to_work = False
+                if not headline_found:
+                    logger.debug("No headline found with proven selectors")
+
+            except Exception as e:
+                logger.warning(f"Headline extraction failed: {e}")
+
+            # Extract location using proven selector fallback chain
+            try:
+                location_found = False
+                for selector in LinkedInSelectors.PROFILE_LOCATION:
+                    try:
+                        location_element = self.page.locator(selector).first
+                        if await location_element.is_visible():
+                            location_text = (
+                                await location_element.inner_text()
+                            ).strip()
+                            if location_text:
+                                person.add_location(location_text)
+                                logger.debug(f"Extracted location: {location_text}")
+                                location_found = True
+                                break
+                    except Exception:
+                        continue
+
+                if not location_found:
+                    logger.debug("No location found with proven selectors")
+
+            except Exception as e:
+                logger.warning(f"Location extraction failed: {e}")
+
+            # Extract about section using proven selectors
+            try:
+                about_found = False
+                for selector in LinkedInSelectors.PROFILE_ABOUT:
+                    try:
+                        about_element = self.page.locator(selector).first
+                        if await about_element.is_visible():
+                            about_text = (await about_element.inner_text()).strip()
+                            if about_text:
+                                person.add_about(about_text)
+                                logger.debug(f"Extracted about: {about_text[:100]}...")
+                                about_found = True
+                                break
+                    except Exception:
+                        continue
+
+                if not about_found:
+                    logger.debug("No about section found with proven selectors")
+
+            except Exception as e:
+                logger.warning(f"About extraction failed: {e}")
+
+            # Extract open to work status
+            try:
+                profile_picture = self.page.locator(
+                    ".pv-top-card-profile-picture img"
+                ).first
+                if await profile_picture.is_visible():
+                    title_attr = await profile_picture.get_attribute("title")
+                    person.open_to_work = title_attr and "#OPEN_TO_WORK" in title_attr
+                    logger.debug(f"Open to work status: {person.open_to_work}")
+                else:
+                    person.open_to_work = False
+            except Exception as e:
+                logger.warning(f"Open to work extraction failed: {e}")
+                person.open_to_work = False
+
+            # Set item count for benchmarking (1 for basic info section)
+            timer.set_item_count(1)
+
+        logger.info("Basic info extraction completed")

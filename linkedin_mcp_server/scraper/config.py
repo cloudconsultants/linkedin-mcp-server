@@ -79,30 +79,29 @@ class BrowserConfig:
         "--disable-default-apps",
         "--no-pings",
         "--disable-sync",
-        "--disable-background-networking",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
         "--disable-features=TranslateUI",
         "--disable-ipc-flooding-protection",
     ]
 
-    # Additional stealth args for headless mode specifically
+    # Additional headless args for better stealth
     HEADLESS_STEALTH_ARGS = STEALTH_CHROME_ARGS + [
-        "--disable-features=VizDisplayCompositor",
-        "--run-all-compositor-stages-before-draw",
-        "--disable-threaded-animation",
-        "--disable-checker-imaging",
-        "--disable-new-content-rendering-timeout",
-        "--disable-threaded-scrolling",
-        "--disable-image-animation-resync",
+        "--headless=new",  # Use new headless mode
+        "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--virtual-time-budget=5000",
     ]
 
-    # Legacy problematic args - kept for reference but NOT used
-    LEGACY_PROBLEMATIC_ARGS = [
-        "--disable-web-security",  # 🚨 RED FLAG - suspicious
-        "--disable-gpu",  # 🚨 RED FLAG - headless indicator
-        "--disable-background-timer-throttling",  # 🚨 RED FLAG - automation pattern
-        "--disable-backgrounding-occluded-windows",  # 🚨 RED FLAG - automation pattern
-        "--disable-renderer-backgrounding",  # 🚨 RED FLAG - automation pattern
-    ]
+    # Geolocation settings
+    GEOLOCATION = {"latitude": 37.7749, "longitude": -122.4194}  # San Francisco
+
+    # Performance settings
+    MEMORY_PRESSURE_SETTINGS = {
+        "memory_pressure_off": True,
+        "max_old_space_size": 4096,
+    }
 
 
 class PersonScrapingFields(Flag):
