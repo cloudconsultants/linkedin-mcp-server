@@ -156,8 +156,10 @@ def get_cookie_and_exit() -> None:
     logger.info(f"LinkedIn MCP Server v{version} - Cookie Extraction mode started")
 
     try:
-        # Run cookie extraction setup
-        cookie = run_cookie_extraction_setup()
+        # Run cookie extraction setup with asyncio
+        import asyncio
+
+        cookie = asyncio.run(run_cookie_extraction_setup())
 
         logger.info("Cookie extraction successful")
         print("✅ Login successful!")

@@ -98,7 +98,13 @@ async def warm_linkedin_session(page: Page, config: Optional[StealthConfig] = No
     try:
         # Stage 1: Visit LinkedIn home (never go directly to profile)
         logger.debug("Warming stage 1: LinkedIn home")
-        await page.goto("https://www.linkedin.com/", wait_until="networkidle")
+        # Use domcontentloaded instead of networkidle for more reliable loading
+        # LinkedIn has continuous background requests that prevent networkidle
+        await page.goto(
+            "https://www.linkedin.com/", wait_until="domcontentloaded", timeout=30000
+        )
+        # Wait a bit for critical resources to load
+        await page.wait_for_load_state("domcontentloaded")
         await random_delay(*config.base_delay_range)
 
         # Simulate human browsing
@@ -106,7 +112,11 @@ async def warm_linkedin_session(page: Page, config: Optional[StealthConfig] = No
 
         # Stage 2: Check if we're authenticated by visiting feed
         logger.debug("Warming stage 2: Checking authentication via feed")
-        await page.goto("https://www.linkedin.com/feed/", wait_until="networkidle")
+        await page.goto(
+            "https://www.linkedin.com/feed/",
+            wait_until="domcontentloaded",
+            timeout=30000,
+        )
 
         # Check for challenges or login requirements
         if await detect_linkedin_challenge(page):
@@ -165,14 +175,14 @@ async def navigate_to_profile_stealthily(
         if not username:
             logger.error(f"Could not extract username from URL: {linkedin_url}")
             # Fallback to direct navigation (riskier)
-            await page.goto(linkedin_url, wait_until="networkidle")
+            await page.goto(linkedin_url, wait_until="domcontentloaded", timeout=30000)
             return
 
         logger.debug(f"Extracted username: {username}")
 
         # Stage 1: Use LinkedIn search instead of direct navigation
         search_url = "https://www.linkedin.com/search/results/people/"
-        await page.goto(search_url, wait_until="networkidle")
+        await page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
         await random_delay(*config.base_delay_range)
 
         # Stage 2: Simulate search typing
@@ -185,7 +195,7 @@ async def navigate_to_profile_stealthily(
         # Stage 3: Submit search with human-like delay
         await random_delay(1.0, 2.0)
         await page.keyboard.press("Enter")
-        await page.wait_for_load_state("networkidle")
+        await page.wait_for_load_state("domcontentloaded")
 
         # Stage 4: Look for and click the profile link
         # Try multiple possible selectors for profile links
@@ -204,7 +214,7 @@ async def navigate_to_profile_stealthily(
                     # Add slight delay before clicking
                     await random_delay(1.0, 2.0)
                     await page.click(selector)
-                    await page.wait_for_load_state("networkidle")
+                    await page.wait_for_load_state("domcontentloaded")
                     profile_found = True
                     logger.debug(f"Profile found using selector: {selector}")
                     break
@@ -216,7 +226,7 @@ async def navigate_to_profile_stealthily(
             logger.warning(
                 "Could not find profile in search results, trying direct navigation"
             )
-            await page.goto(linkedin_url, wait_until="networkidle")
+            await page.goto(linkedin_url, wait_until="domcontentloaded", timeout=30000)
 
         # Stage 5: Final check for successful navigation
         await random_delay(*config.base_delay_range)

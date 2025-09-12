@@ -1,164 +1,56 @@
-# Based on .gitignore with Docker-specific additions
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pipenv
-#Pipfile.lock
-
-# poetry
-#poetry.lock
-
-# pdm
-.pdm.toml
-.pdm-python
-.pdm-build/
-
-# PEP 582
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# Ruff stuff:
-.ruff_cache/
-
-# PyPI configuration file
-.pypirc
-
-# Cursor
-.cursorignore
-.cursorindexingignore
-.cursor
-
-# Docker-specific exclusions
+# Reduce build context size
 .git
 .github
-README.md
+.venv
+.uv-cache
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.mypy_cache
+.ruff_cache
+
+# Documentation and examples
+docs/
+PRPs/
+*.md
+!README.md
+
+# Development files
+.env
+.env.*
+*.log
+tests/
+test_*.py
+*_test.py
+
+# OS files
 .DS_Store
+Thumbs.db
 
-# DXT Extension
-*.dxt
-assets/*
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# other dev files
-.vscode
-.claude
-.github
-.docker
+# Temporary files
+*.tmp
+*.temp
+run_linkedin_mcp.sh
+
+# Runtime-specific exclusions
+test_*.py
+*_test.py
+test_browser_discovery.py
+test_patchright_imports.py
+test_minimal_*.py
+test_minimal_*.sh
+pyproject.minimal.toml
+Dockerfile.test
+Dockerfile.minimal
+Dockerfile.optimized
