@@ -12,7 +12,6 @@ from contextlib import contextmanager
 from typing import Dict, Iterator
 
 import inquirer
-from selenium import webdriver
 
 from linkedin_mcp_server.authentication import store_authentication
 from linkedin_mcp_server.config import get_config
@@ -88,31 +87,36 @@ def prompt_for_credentials() -> Dict[str, str]:
 
 
 @contextmanager
-def temporary_chrome_driver() -> Iterator[webdriver.Chrome]:
+def temporary_playwright_session() -> Iterator:
     """
-    Context manager for creating temporary Chrome driver with automatic cleanup.
+    Context manager for creating temporary Playwright session with automatic cleanup.
 
     Yields:
-        webdriver.Chrome: Configured Chrome WebDriver instance
+        LinkedInSession: Configured Playwright session instance
 
     Raises:
-        Exception: If driver creation fails
+        Exception: If session creation fails
     """
-    from linkedin_mcp_server.drivers.chrome import create_temporary_chrome_driver
+    from linkedin_mcp_server.scraper.session import LinkedInSession
 
-    driver = None
+    session = None
     try:
-        # Create temporary driver using shared function
-        driver = create_temporary_chrome_driver()
-        yield driver
+        # Create temporary session
+        session = LinkedInSession()
+        yield session
     finally:
-        if driver:
-            driver.quit()
+        if session:
+            try:
+                import asyncio
+
+                asyncio.run(session.close())
+            except Exception:
+                pass  # Best effort cleanup
 
 
-def capture_cookie_from_credentials(email: str, password: str) -> str:
+async def capture_cookie_from_credentials(email: str, password: str) -> str:
     """
-    Login with credentials and capture session cookie using temporary driver.
+    Login with credentials and capture session cookie using Playwright.
 
     Args:
         email: LinkedIn email
@@ -124,34 +128,38 @@ def capture_cookie_from_credentials(email: str, password: str) -> str:
     Raises:
         Exception: If login or cookie capture fails
     """
-    with temporary_chrome_driver() as driver:
-        # Login using linkedin-scraper
-        from linkedin_scraper import actions
+    from linkedin_mcp_server.scraper.session import LinkedInSession
 
-        config: AppConfig = get_config()
-        interactive: bool = config.is_interactive
-        logger.info(f"Logging in to LinkedIn... Interactive: {interactive}")
-        actions.login(
-            driver,
-            email,
-            password,
-            timeout=60,  # longer timeout for login (captcha, mobile verification, etc.)
-            interactive=interactive,  # type: ignore  # Respect configuration setting
-        )
+    config: AppConfig = get_config()
+    interactive: bool = config.is_interactive
+    logger.info(f"Logging in to LinkedIn... Interactive: {interactive}")
 
-        # Capture cookie
-        cookie_obj: Dict[str, str] = driver.get_cookie("li_at")
-        if cookie_obj and cookie_obj.get("value"):
-            cookie: str = cookie_obj["value"]
-            logger.info("Successfully captured session cookie")
-            return cookie
-        else:
-            raise Exception("Failed to capture session cookie from browser")
+    # Create session and login
+    session = LinkedInSession()
+    try:
+        async with session:
+            # Login using Playwright
+            await session.login_with_credentials(
+                email=email,
+                password=password,
+                headless=config.chrome.headless,
+                timeout=60000,  # 60 seconds timeout
+            )
+
+            # Extract cookie from browser context
+            cookie = await session.get_session_cookie()
+            if cookie:
+                logger.info("Successfully captured session cookie")
+                return cookie
+            else:
+                raise Exception("Failed to capture session cookie from browser")
+    finally:
+        await session.close()
 
 
-def test_cookie_validity(cookie: str) -> bool:
+async def test_cookie_validity(cookie: str) -> bool:
     """
-    Test if a cookie is valid by attempting to use it with a temporary driver.
+    Test if a cookie is valid by attempting to use it with Playwright session.
 
     Args:
         cookie: LinkedIn session cookie to test
@@ -160,10 +168,13 @@ def test_cookie_validity(cookie: str) -> bool:
         bool: True if cookie is valid, False otherwise
     """
     try:
-        with temporary_chrome_driver() as driver:
-            from linkedin_mcp_server.drivers.chrome import login_with_cookie
+        from linkedin_mcp_server.session.manager import PlaywrightSessionManager
 
-            return login_with_cookie(driver, cookie)
+        # Try to create and authenticate a session
+        session = await PlaywrightSessionManager.get_or_create_session(cookie)
+        is_authenticated = await session.is_authenticated()
+
+        return is_authenticated
     except Exception as e:
         logger.warning(f"Cookie validation failed: {e}")
         return False
@@ -193,7 +204,7 @@ def prompt_for_cookie() -> str:
     return cookie
 
 
-def run_interactive_setup() -> str:
+async def run_interactive_setup() -> str:
     """
     Run interactive setup to configure authentication.
 
@@ -220,9 +231,9 @@ def run_interactive_setup() -> str:
         # User provides cookie directly
         cookie = prompt_for_cookie()
 
-        # Test the cookie with a temporary driver
+        # Test the cookie with Playwright session
         print("🔍 Testing provided cookie...")
-        if test_cookie_validity(cookie):
+        if await test_cookie_validity(cookie):
             # Store the valid cookie
             store_authentication(cookie)
             logger.info("✅ Authentication configured successfully")
@@ -246,7 +257,7 @@ def run_interactive_setup() -> str:
                 credentials = get_credentials_for_setup()
 
                 print("🔑 Logging in to capture session cookie...")
-                cookie = capture_cookie_from_credentials(
+                cookie = await capture_cookie_from_credentials(
                     credentials["email"], credentials["password"]
                 )
 
@@ -281,7 +292,7 @@ def run_interactive_setup() -> str:
     raise Exception("Unexpected setup flow completion")
 
 
-def run_cookie_extraction_setup() -> str:
+async def run_cookie_extraction_setup() -> str:
     """
     Run setup specifically for cookie extraction (--get-cookie mode).
 
@@ -298,7 +309,7 @@ def run_cookie_extraction_setup() -> str:
     credentials: Dict[str, str] = get_credentials_for_setup()
 
     # Capture cookie
-    cookie: str = capture_cookie_from_credentials(
+    cookie: str = await capture_cookie_from_credentials(
         credentials["email"], credentials["password"]
     )
 
