@@ -164,13 +164,13 @@ class PersonScraper:
         """Scrape basic profile information using robust proven selectors."""
         from .selectors import LinkedInSelectors, PerformanceBenchmark
         from ...browser.behavioral import simulate_profile_reading_behavior
-        
+
         logger.info("Starting basic info extraction with proven selectors")
-        
+
         with PerformanceBenchmark.time_section("basic_info", logger) as timer:
             # CRITICAL: Use existing stealth behavior - DO NOT MODIFY
             await simulate_profile_reading_behavior(self.page)
-            
+
             # Extract name using proven selector
             try:
                 name_element = self.page.locator(LinkedInSelectors.PROFILE_NAME).first
@@ -181,7 +181,7 @@ class PersonScraper:
                         logger.debug(f"Extracted name: {name_text}")
             except Exception as e:
                 logger.warning(f"Name extraction failed: {e}")
-                
+
             # Extract headline using proven selector fallback chain
             try:
                 headline_found = False
@@ -189,33 +189,39 @@ class PersonScraper:
                     try:
                         headline_element = self.page.locator(selector).first
                         if await headline_element.is_visible():
-                            headline_text = (await headline_element.inner_text()).strip()
+                            headline_text = (
+                                await headline_element.inner_text()
+                            ).strip()
                             # Validate headline: not empty, not same as name, substantial content
-                            if (headline_text and 
-                                headline_text != person.name and 
-                                len(headline_text) > 5 and
-                                headline_text not in ["", "null", "undefined"]):
+                            if (
+                                headline_text
+                                and headline_text != person.name
+                                and len(headline_text) > 5
+                                and headline_text not in ["", "null", "undefined"]
+                            ):
                                 person.add_headline(headline_text)
                                 logger.debug(f"Extracted headline: {headline_text}")
                                 headline_found = True
                                 break
                     except Exception:
                         continue
-                
+
                 if not headline_found:
                     logger.debug("No headline found with proven selectors")
-                    
+
             except Exception as e:
                 logger.warning(f"Headline extraction failed: {e}")
-                
-            # Extract location using proven selector fallback chain  
+
+            # Extract location using proven selector fallback chain
             try:
                 location_found = False
                 for selector in LinkedInSelectors.PROFILE_LOCATION:
                     try:
                         location_element = self.page.locator(selector).first
                         if await location_element.is_visible():
-                            location_text = (await location_element.inner_text()).strip()
+                            location_text = (
+                                await location_element.inner_text()
+                            ).strip()
                             if location_text:
                                 person.add_location(location_text)
                                 logger.debug(f"Extracted location: {location_text}")
@@ -223,13 +229,13 @@ class PersonScraper:
                                 break
                     except Exception:
                         continue
-                        
+
                 if not location_found:
                     logger.debug("No location found with proven selectors")
-                    
+
             except Exception as e:
                 logger.warning(f"Location extraction failed: {e}")
-                
+
             # Extract about section using proven selectors
             try:
                 about_found = False
@@ -245,16 +251,18 @@ class PersonScraper:
                                 break
                     except Exception:
                         continue
-                        
+
                 if not about_found:
                     logger.debug("No about section found with proven selectors")
-                    
+
             except Exception as e:
                 logger.warning(f"About extraction failed: {e}")
-                
+
             # Extract open to work status
             try:
-                profile_picture = self.page.locator(".pv-top-card-profile-picture img").first
+                profile_picture = self.page.locator(
+                    ".pv-top-card-profile-picture img"
+                ).first
                 if await profile_picture.is_visible():
                     title_attr = await profile_picture.get_attribute("title")
                     person.open_to_work = title_attr and "#OPEN_TO_WORK" in title_attr
@@ -264,8 +272,8 @@ class PersonScraper:
             except Exception as e:
                 logger.warning(f"Open to work extraction failed: {e}")
                 person.open_to_work = False
-                
+
             # Set item count for benchmarking (1 for basic info section)
             timer.set_item_count(1)
-            
+
         logger.info("Basic info extraction completed")

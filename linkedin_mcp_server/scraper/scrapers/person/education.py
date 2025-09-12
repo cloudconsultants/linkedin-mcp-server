@@ -25,24 +25,24 @@ logger = logging.getLogger(__name__)
 
 async def scrape_educations_main_page(page: Page, person: Person) -> None:
     """Extract educations from main profile page only - using proven selectors.
-    
+
     This function stays on the main profile page and uses the proven selector pattern
     div[data-view-name='profile-component-entity'] that successfully generated the
     testdata/testscrape.txt baseline (4 educations).
-    
+
     Args:
         page: Playwright page instance (already on main profile page)
         person: Person model to populate with education data
     """
     logger.info("Starting main-page education extraction")
-    
+
     with PerformanceBenchmark.time_section("education", logger) as timer:
-        # CRITICAL: Use existing stealth behavior to avoid detection  
+        # CRITICAL: Use existing stealth behavior to avoid detection
         await simulate_profile_reading_behavior(page)
-        
+
         # Find education section using proven selector
         education_section = None
-        
+
         # Try primary selector first
         try:
             education_section = page.locator(LinkedInSelectors.EDUCATION_SECTION).first
@@ -50,7 +50,7 @@ async def scrape_educations_main_page(page: Page, person: Person) -> None:
                 education_section = None
         except Exception:
             education_section = None
-            
+
         # Fall back to alternative selectors if needed
         if not education_section:
             for alt_selector in LinkedInSelectors.EDUCATION_SECTION_ALT:
@@ -58,105 +58,118 @@ async def scrape_educations_main_page(page: Page, person: Person) -> None:
                     section = page.locator(alt_selector).first
                     if await section.is_visible():
                         education_section = section
-                        logger.debug(f"Education section found with fallback: {alt_selector}")
+                        logger.debug(
+                            f"Education section found with fallback: {alt_selector}"
+                        )
                         break
                 except Exception:
                     continue
-                    
+
         if not education_section:
             logger.warning("Education section not found on main page")
             timer.set_item_count(0)
             return
-            
+
         # Scroll to reveal content (LinkedIn lazy-loads)
         await education_section.scroll_into_view_if_needed()
         await page.wait_for_timeout(2000)
-        
+
         # Extract education items using proven selector
         extracted_count = 0
-        
+
         # Try primary item selector
         try:
             education_items = await education_section.locator(
                 LinkedInSelectors.EDUCATION_ITEMS
             ).all()
-            
-            logger.debug(f"Found {len(education_items)} education items with primary selector")
-            
+
+            logger.debug(
+                f"Found {len(education_items)} education items with primary selector"
+            )
+
             if education_items:
                 extracted_count = await _extract_educations_from_items(
                     education_items, person
                 )
-                
+
         except Exception as e:
             logger.warning(f"Primary education selector failed: {e}")
-            
+
         # Fall back to alternative selectors if primary failed
         if extracted_count == 0:
             for alt_selector in LinkedInSelectors.EDUCATION_ITEMS_ALT:
                 try:
-                    education_items = await education_section.locator(alt_selector).all()
-                    logger.debug(f"Trying fallback selector {alt_selector}: found {len(education_items)} items")
-                    
+                    education_items = await education_section.locator(
+                        alt_selector
+                    ).all()
+                    logger.debug(
+                        f"Trying fallback selector {alt_selector}: found {len(education_items)} items"
+                    )
+
                     if education_items:
                         extracted_count = await _extract_educations_from_items(
                             education_items, person
                         )
                         if extracted_count > 0:
-                            logger.debug(f"Successfully extracted {extracted_count} educations with fallback")
+                            logger.debug(
+                                f"Successfully extracted {extracted_count} educations with fallback"
+                            )
                             break
-                            
+
                 except Exception as e:
                     logger.debug(f"Fallback selector {alt_selector} failed: {e}")
                     continue
-        
+
         timer.set_item_count(extracted_count)
-        
+
         if extracted_count == 0:
             logger.warning("No educations extracted - selectors may be outdated")
         else:
-            logger.info(f"Successfully extracted {extracted_count} educations from main page")
+            logger.info(
+                f"Successfully extracted {extracted_count} educations from main page"
+            )
 
 
 async def _extract_educations_from_items(
-    education_items: List[Locator], 
-    person: Person
+    education_items: List[Locator], person: Person
 ) -> int:
     """Extract education data from a list of education item locators.
-    
+
     Args:
         education_items: List of Playwright locators for education items
         person: Person model to add educations to
-        
+
     Returns:
         Number of educations successfully extracted
     """
     extracted_count = 0
-    
+
     for item in education_items:
         try:
             education = await _extract_single_education(item)
             if education:
                 person.add_education(education)
                 extracted_count += 1
-                logger.debug(f"Extracted education: {education.degree} from {education.institution_name}")
-                
+                logger.debug(
+                    f"Extracted education: {education.degree} from {education.institution_name}"
+                )
+
         except Exception as e:
             logger.debug(f"Failed to extract single education: {e}")
             continue
-            
+
     return extracted_count
 
 
 async def _extract_single_education(item: Locator) -> Optional[Education]:
     """Extract education data from a single education item.
-    
+
     This follows the proven extraction pattern that generated testscrape.txt,
     focusing on clean text extraction and proper field mapping to match the baseline format.
-    
+
     Args:
         item: Playwright locator for single education item
-        
+
     Returns:
         Education object or None if extraction fails
     """
@@ -165,13 +178,13 @@ async def _extract_single_education(item: Locator) -> Optional[Education]:
         elements = await item.locator("> *").all()
         if len(elements) < 2:
             return None
-            
+
         institution_logo_elem = elements[0]
         position_details = elements[1]
-        
+
         # Extract institution LinkedIn URL
         institution_linkedin_url = await _extract_institution_url(institution_logo_elem)
-        
+
         # Extract education details
         position_details_list = await position_details.locator("> *").all()
         position_summary_details = (
@@ -180,13 +193,13 @@ async def _extract_single_education(item: Locator) -> Optional[Education]:
         position_summary_text = (
             position_details_list[1] if len(position_details_list) > 1 else None
         )
-        
+
         if not position_summary_details:
             return None
-            
+
         # Extract education information using proven parsing
         education_info = await _extract_education_info(position_summary_details)
-        
+
         # Extract description and skills from summary text
         description = ""
         skills = []
@@ -196,8 +209,10 @@ async def _extract_single_education(item: Locator) -> Optional[Education]:
             # Clean single element duplicates before processing
             cleaned_text = clean_single_string_duplicates(raw_text)
             description, skills = extract_description_and_skills(cleaned_text)
-            logger.debug(f"Education extracted - description: {repr(description)}, skills: {skills}")
-        
+            logger.debug(
+                f"Education extracted - description: {repr(description)}, skills: {skills}"
+            )
+
         # Create education object matching testscrape.txt format
         return Education(
             from_date=education_info.get("from_date") or None,
@@ -206,9 +221,11 @@ async def _extract_single_education(item: Locator) -> Optional[Education]:
             degree=education_info.get("degree") or None,
             institution_name=education_info.get("institution_name", ""),
             skills=skills,
-            linkedin_url=HttpUrl(institution_linkedin_url) if institution_linkedin_url else None,
+            linkedin_url=HttpUrl(institution_linkedin_url)
+            if institution_linkedin_url
+            else None,
         )
-        
+
     except Exception as e:
         logger.debug(f"Single education extraction failed: {e}")
         return None
@@ -228,7 +245,7 @@ async def _extract_institution_url(institution_logo_elem: Locator) -> Optional[s
 
 async def _extract_education_info(position_summary_details: Locator) -> dict:
     """Extract education information from position summary element.
-    
+
     This uses proven parsing logic to extract institution name, degree, and dates
     in a format that matches the testscrape.txt baseline.
     """
@@ -276,7 +293,7 @@ async def _extract_education_info(position_summary_details: Locator) -> dict:
 # Keep existing helper functions for compatibility
 async def scrape_educations(page: Page, person: Person) -> None:
     """Legacy function - redirects to main-page-only version.
-    
+
     This maintains API compatibility while using the new main-page-only approach.
     """
     logger.warning("Legacy scrape_educations called - using main-page-only version")

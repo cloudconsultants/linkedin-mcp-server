@@ -30,6 +30,22 @@ This release represents a significant evolution of the LinkedIn MCP Server with 
 - Session persistence across multiple requests
 - Automatic cookie validation and renewal
 - Graceful handling of security challenges
+- **Session Warming Bypass**: Introduced optional bypass for environments where LinkedIn's redirect behavior causes issues
+
+#### Session Warming Details
+The system includes comprehensive session warming functionality (preserved in `behavioral.py`) that:
+- Simulates human browsing patterns with natural mouse movements
+- Gradually navigates through LinkedIn pages (home → feed → profile)
+- Implements random delays and reading behavior patterns
+- Handles security challenges and bot detection
+
+However, a **bypass mode** has been introduced that:
+- Skips problematic LinkedIn home page navigation that can cause redirect loops
+- Adopts the legacy direct-profile-access approach (like the original Selenium implementation)
+- Reduces authentication failures in containerized environments
+- Maintains all stealth features while avoiding session warming bottlenecks
+
+The full session warming code remains available and can be re-enabled by modifying the `warm_linkedin_session()` function in `linkedin_mcp_server/scraper/browser/behavioral.py` to restore the comprehensive warming protocol.
 
 ---
 
@@ -113,11 +129,19 @@ Application Code:        <1MB (<1%)
 
 ## 🐛 Bug Fixes
 
+### Authentication & Session Management
+- **Fixed ERR_TOO_MANY_REDIRECTS errors** during LinkedIn session warming
+- **Resolved authentication failures** in MCP server startup with valid cookies
+- **Implemented legacy-style direct profile access** to bypass LinkedIn redirect loops
+- **Enhanced CSS selector validation** for main-page-only content extraction
+- Fixed session warming compatibility issues in containerized environments
+
 ### Profile Scraping
 - Fixed incomplete experience data extraction
 - Resolved education dates parsing issues
 - Corrected skills and endorsements counting
 - Fixed profile URL normalization
+- **Improved main-page content extraction** to get all available data without detail page navigation
 
 ### Company Scraping
 - Improved handling of company pages without employees

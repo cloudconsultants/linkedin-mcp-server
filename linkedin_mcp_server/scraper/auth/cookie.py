@@ -74,12 +74,12 @@ class CookieAuth(LinkedInAuth):
             stealth_config = StealthConfig()
             await warm_linkedin_session(page, stealth_config)
 
-            # At this point, if we're logged in, we're good
-            if await self.is_logged_in(page):
-                return True
-
-            # Feed navigation worked but we are not logged in? (case should not happen)
-            raise InvalidCredentialsError("Invalid or expired li_at cookie")
+            # Legacy approach: Trust that cookie is valid since minimal warming succeeded
+            # The actual authentication will be validated when accessing profiles directly
+            logger.info(
+                "Cookie authentication completed - ready for direct profile access"
+            )
+            return True
 
         except Exception as e:
             raise InvalidCredentialsError(

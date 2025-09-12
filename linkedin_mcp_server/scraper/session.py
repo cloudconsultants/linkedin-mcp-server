@@ -78,7 +78,7 @@ class LinkedInSession:
         except Exception:
             return False
 
-    def _ensure_authenticated(self) -> Page:
+    async def _ensure_authenticated(self) -> Page:
         """Ensure session is authenticated and return page.
 
         Returns:
@@ -87,7 +87,7 @@ class LinkedInSession:
         Raises:
             RuntimeError: If not authenticated
         """
-        if not self.is_authenticated():
+        if not await self.is_authenticated():
             raise RuntimeError(
                 "Not authenticated. Call login() or login_with_cookie() first."
             )
@@ -114,7 +114,7 @@ class LinkedInSession:
         """
         from .scrapers.person import PersonScraper
 
-        page: Page = self._ensure_authenticated()
+        page: Page = await self._ensure_authenticated()
         scraper: PersonScraper = PersonScraper(page)
         return await scraper.scrape_profile(url, fields)
 
