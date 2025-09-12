@@ -14,6 +14,9 @@ dependencies = [
     "rapidfuzz>=3.13.0",
     "suffix-trees>=0.3.0",
     "pyperclip>=1.9.0",
+    "patchright>=1.55.0",
+    "fake-useragent>=1.4.0",
+    "asyncio-throttle>=1.0.2",
 ]
 
 [project.scripts]

@@ -1,65 +1,175 @@
-"""Simple browser management for LinkedIn scraping."""
+"""Stealth-enhanced browser management for LinkedIn scraping."""
 
-import os
 import logging
 from pathlib import Path
-from playwright.async_api import BrowserContext, async_playwright
+from typing import Optional
+from playwright.async_api import BrowserContext, Page
 
-from ..config import BrowserConfig
+from ..config import StealthConfig, LinkedInDetectionError
+from .stealth_manager import StealthManager
+from .behavioral import warm_linkedin_session, simulate_profile_reading_behavior
 
 logger = logging.getLogger(__name__)
 
 
-class BrowserContextManager:
-    """Context manager for browser contexts with storage state support."""
+class StealthBrowserContextManager:
+    """Stealth-enhanced context manager for LinkedIn scraping with session warming."""
 
-    def __init__(self, headless: bool = True, storage_state_path: str | None = None):
+    def __init__(
+        self,
+        headless: bool = True,
+        storage_state_path: Optional[str] = None,
+        stealth_config: Optional[StealthConfig] = None,
+        enable_session_warming: bool = True,
+    ):
         self.headless = headless
         self.storage_state_path = storage_state_path
-        self.playwright_context = None
-        self.context = None
+        self.stealth_config = stealth_config or StealthConfig(headless=headless)
+        self.enable_session_warming = enable_session_warming
+        self.stealth_manager = StealthManager(self.stealth_config)
+        self.context: Optional[BrowserContext] = None
+        self.warmed_up = False
 
     async def __aenter__(self) -> BrowserContext:
-        """Create browser context with storage state if available."""
-        self.playwright_context = async_playwright()
-        playwright = await self.playwright_context.__aenter__()
+        """Create stealth browser context with optional session warming."""
+        logger.info("Creating stealth browser context...")
 
-        browser = await playwright.chromium.launch(
-            headless=self.headless,
-            args=BrowserConfig.CHROME_ARGS,
-        )
+        try:
+            # Create stealth context using the manager
+            self.context = await self.stealth_manager.create_stealth_context(
+                self.storage_state_path
+            )
 
-        context_options = {
-            "user_agent": BrowserConfig.USER_AGENT,
-            "viewport": BrowserConfig.VIEWPORT,
-        }
+            # Perform session warming if enabled
+            if self.enable_session_warming and not self.warmed_up:
+                await self.warm_session()
+                self.warmed_up = True
 
-        # Load storage state if available
-        if self.storage_state_path and os.path.exists(self.storage_state_path):
-            context_options["storage_state"] = self.storage_state_path
-            logger.info(f"Loading storage state from {self.storage_state_path}")
+            return self.context
 
-        self.context = await browser.new_context(**context_options)
-        self.context.set_default_timeout(BrowserConfig.TIMEOUT)
+        except Exception as e:
+            logger.error(f"Failed to create stealth context: {e}")
+            await self.cleanup()
+            raise LinkedInDetectionError(f"Context creation failed: {e}")
 
-        return self.context
+    async def warm_session(self):
+        """Warm up the session to avoid detection."""
+        if not self.context:
+            raise RuntimeError("Context not initialized")
+
+        logger.info("Warming LinkedIn session...")
+        page = await self.context.new_page()
+
+        try:
+            await warm_linkedin_session(page, self.stealth_config)
+            logger.info("Session warming completed successfully")
+        except Exception as e:
+            logger.error(f"Session warming failed: {e}")
+            raise
+        finally:
+            await page.close()
+
+    async def create_stealth_page(self) -> Page:
+        """Create a new page with stealth behaviors ready."""
+        if not self.context:
+            raise RuntimeError("Context not initialized")
+
+        page = await self.context.new_page()
+
+        # Set up page-level stealth behaviors
+        await self._setup_page_stealth(page)
+
+        return page
+
+    async def _setup_page_stealth(self, page: Page):
+        """Set up page-level stealth configurations."""
+        try:
+            # Override navigator.webdriver
+            await page.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined,
+                });
+            """)
+
+            # Set up request interception for additional stealth
+            async def handle_route(route):
+                # Add random delays to requests to seem more human
+                import asyncio
+                import random
+
+                await asyncio.sleep(random.uniform(0.01, 0.1))
+                await route.continue_()
+
+            # Intercept some requests to add delays
+            await page.route("**/*", handle_route)
+
+        except Exception as e:
+            logger.debug(f"Page stealth setup failed: {e}")
+
+    async def navigate_to_profile_safely(self, page: Page, linkedin_url: str) -> bool:
+        """Safely navigate to a LinkedIn profile with stealth patterns."""
+        try:
+            # Enforce rate limiting first
+            await self.stealth_manager.enforce_rate_limit()
+
+            # Import here to avoid circular imports
+            from .behavioral import (
+                navigate_to_profile_stealthily,
+                detect_linkedin_challenge,
+            )
+
+            # Navigate using stealth patterns
+            await navigate_to_profile_stealthily(
+                page, linkedin_url, self.stealth_config
+            )
+
+            # Check for detection after navigation
+            if await detect_linkedin_challenge(page):
+                raise LinkedInDetectionError(
+                    "Detection suspected after profile navigation"
+                )
+
+            # Simulate human reading behavior
+            await simulate_profile_reading_behavior(page, self.stealth_config)
+
+            return True
+
+        except LinkedInDetectionError as e:
+            logger.error(f"LinkedIn detection during navigation: {e}")
+            await self.stealth_manager.handle_detection(page, e)
+            return False
+        except Exception as e:
+            logger.error(f"Profile navigation failed: {e}")
+            return False
 
     async def save_storage_state(self):
         """Save authentication state for reuse."""
         if self.storage_state_path and self.context:
-            # Ensure directory exists
-            Path(self.storage_state_path).parent.mkdir(parents=True, exist_ok=True)
-            await self.context.storage_state(path=self.storage_state_path)
-            logger.info(f"Saved storage state to {self.storage_state_path}")
+            try:
+                # Ensure directory exists
+                Path(self.storage_state_path).parent.mkdir(parents=True, exist_ok=True)
+                await self.context.storage_state(path=self.storage_state_path)
+                logger.info(f"Saved storage state to {self.storage_state_path}")
+            except Exception as e:
+                logger.warning(f"Failed to save storage state: {e}")
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Save state before cleanup."""
+    async def cleanup(self):
+        """Clean up stealth resources."""
         try:
             if self.context:
                 await self.save_storage_state()
-        except Exception as e:
-            logger.warning(f"Failed to save storage state: {e}")
 
-        # Original cleanup
-        if self.playwright_context:
-            await self.playwright_context.__aexit__(exc_type, exc_val, exc_tb)
+            await self.stealth_manager.cleanup()
+            self.context = None
+            self.warmed_up = False
+
+        except Exception as e:
+            logger.warning(f"Cleanup failed: {e}")
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Clean up on context exit."""
+        await self.cleanup()
+
+
+# Backward compatibility alias
+BrowserContextManager = StealthBrowserContextManager
