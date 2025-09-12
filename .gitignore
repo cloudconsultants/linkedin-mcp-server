@@ -199,6 +199,10 @@ cython_debug/
 CLAUDE.md
 
 # Project documentation and planning artifacts
-# PRPs/
-# docs/
-# testdata/
+PRPs/
+testdata/
+
+# Development environment configurations
+.github/
+.serena/
+.vscode/
