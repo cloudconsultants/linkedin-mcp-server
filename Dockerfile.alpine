@@ -1,0 +1,98 @@
+# ====== STAGE 1: BUILDER ======
+FROM python:3.12-alpine AS builder
+
+# Install build dependencies for Alpine
+RUN apk add --no-cache \
+    git \
+    gcc \
+    musl-dev \
+    python3-dev \
+    linux-headers
+
+# Install uv for fast builds
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
+
+WORKDIR /build
+
+# Copy minimal dependency files
+COPY pyproject.docker.toml pyproject.toml
+COPY uv.lock ./
+
+# Install runtime dependencies ONLY
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-optional
+
+# Install Patchright browsers
+RUN uv run patchright install chromium
+
+# ====== STAGE 2: RUNTIME ======
+FROM python:3.12-alpine AS runtime
+
+# Install minimal runtime dependencies for Chromium on Alpine
+RUN apk add --no-cache \
+    # Essential libraries for Chromium
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    # X11 libraries
+    libx11 \
+    libxcomposite \
+    libxdamage \
+    libxext \
+    libxfixes \
+    libxrandr \
+    libxrender \
+    libxss \
+    libxtst \
+    # Other dependencies
+    alsa-lib \
+    at-spi2-atk \
+    atk \
+    cups-libs \
+    dbus-glib \
+    glib \
+    gtk+3.0 \
+    libdrm \
+    libxkbcommon \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN adduser -D -u 1000 mcpuser
+
+WORKDIR /app
+
+# Copy Python environment from builder
+COPY --from=builder --chown=mcpuser:mcpuser /build/.venv /app/.venv
+
+# Copy Patchright browser installation
+COPY --from=builder --chown=mcpuser:mcpuser /root/.cache/ms-playwright /home/mcpuser/.cache/ms-playwright
+
+# Copy essential application code
+COPY --chown=mcpuser:mcpuser linkedin_mcp_server /app/linkedin_mcp_server
+COPY --chown=mcpuser:mcpuser pyproject.toml /app/
+COPY --chown=mcpuser:mcpuser docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Switch to non-root user
+USER mcpuser
+
+# Environment configuration
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATCHRIGHT_SKIP_BROWSER_DOWNLOAD=0 \
+    DOCKER_RUNTIME=1 \
+    PYTHONOPTIMIZE=2 \
+    PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring \
+    XDG_DATA_HOME=/home/mcpuser/.local/share
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import linkedin_mcp_server; print('OK')" || exit 1
+
+# Entrypoint
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD []

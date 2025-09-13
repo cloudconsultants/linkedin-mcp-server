@@ -20,7 +20,7 @@ class CredentialsNotFoundError(LinkedInMCPError):
     pass
 
 
-class DriverInitializationError(LinkedInMCPError):
-    """Failed to initialize Chrome WebDriver."""
+class BrowserInitializationError(LinkedInMCPError):
+    """Failed to initialize Playwright browser."""
 
     pass

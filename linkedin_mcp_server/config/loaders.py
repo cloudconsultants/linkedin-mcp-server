@@ -20,10 +20,9 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from .providers import (
-    get_chromedriver_paths,
     get_cookie_from_keyring,
     get_credentials_from_keyring,
 )
@@ -44,8 +43,7 @@ class EnvironmentKeys:
     LINKEDIN_PASSWORD = "LINKEDIN_PASSWORD"
     LINKEDIN_COOKIE = "LINKEDIN_COOKIE"
 
-    # Chrome configuration
-    CHROMEDRIVER = "CHROMEDRIVER"
+    # Browser configuration
     HEADLESS = "HEADLESS"
     USER_AGENT = "USER_AGENT"
 
@@ -83,21 +81,6 @@ def load_env_file(env_file_path: str | None = None) -> None:
 
     except ImportError:
         logger.warning("python-dotenv not installed, skipping .env file loading")
-
-
-def find_chromedriver() -> Optional[str]:
-    """Find the ChromeDriver executable in common locations."""
-    # First check environment variable
-    if path := os.getenv("CHROMEDRIVER"):
-        if os.path.exists(path):
-            return path
-
-    # Check common locations
-    for path in get_chromedriver_paths():
-        if os.path.exists(path) and (os.access(path, os.X_OK) or path.endswith(".exe")):
-            return path
-
-    return None
 
 
 def is_interactive_environment() -> bool:
@@ -148,10 +131,7 @@ def load_from_env(config: AppConfig) -> AppConfig:
     if cookie := os.environ.get(EnvironmentKeys.LINKEDIN_COOKIE):
         config.linkedin.cookie = cookie
 
-    # ChromeDriver configuration
-    if chromedriver := os.environ.get(EnvironmentKeys.CHROMEDRIVER):
-        config.chrome.chromedriver_path = chromedriver
-
+    # Browser configuration
     if user_agent := os.environ.get(EnvironmentKeys.USER_AGENT):
         config.chrome.user_agent = user_agent
 
@@ -245,12 +225,6 @@ def load_from_args(config: AppConfig) -> AppConfig:
     )
 
     parser.add_argument(
-        "--chromedriver",
-        type=str,
-        help="Specify the path to the ChromeDriver executable",
-    )
-
-    parser.add_argument(
         "--get-cookie",
         action="store_true",
         help="Login with credentials and display cookie for Docker setup",
@@ -318,9 +292,6 @@ def load_from_args(config: AppConfig) -> AppConfig:
     if args.path:
         config.server.path = args.path
 
-    if args.chromedriver:
-        config.chrome.chromedriver_path = args.chromedriver
-
     if args.get_cookie:
         config.server.get_cookie = True
     if args.clear_keychain:
@@ -353,7 +324,6 @@ def detect_environment() -> Dict[str, Any]:
         Dict containing detected environment settings
     """
     return {
-        "chromedriver_path": find_chromedriver(),
         "is_interactive": is_interactive_environment(),
     }
 
@@ -366,7 +336,7 @@ def load_config() -> AppConfig:
     1. Command line arguments (highest priority)
     2. Environment variables
     3. System keyring
-    4. Auto-detection (ChromeDriver, interactive mode)
+    4. Auto-detection (interactive mode)
     5. Defaults (lowest priority)
 
     Returns:
@@ -386,12 +356,6 @@ def load_config() -> AppConfig:
     env_settings = detect_environment()
 
     # Set detected values if not already configured
-    if env_settings["chromedriver_path"] and not config.chrome.chromedriver_path:
-        config.chrome.chromedriver_path = env_settings["chromedriver_path"]
-        logger.debug(
-            f"Auto-detected ChromeDriver found at: {env_settings['chromedriver_path']}"
-        )
-
     config.is_interactive = env_settings["is_interactive"]
     logger.debug(f"Auto-detected interactive mode: {config.is_interactive}")
 

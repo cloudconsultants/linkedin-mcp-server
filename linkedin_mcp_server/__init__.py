@@ -10,14 +10,14 @@ Key Features:
 - Secure LinkedIn authentication via session cookies
 - LinkedIn profile, company, and job data scraping
 - MCP-compliant server implementation using FastMCP
-- Chrome WebDriver automation with session persistence
+- Playwright browser automation with session persistence
 - Layered configuration system with secure credential storage
 - Docker containerization for easy deployment
 - Claude Desktop DXT extension support
 
 Architecture:
-- Clean separation between authentication, driver management, and MCP server
-- Singleton pattern for WebDriver session management
+- Clean separation between authentication, browser session management, and MCP server
+- Session persistence and state management
 - Comprehensive error handling and logging
 - Cross-platform compatibility (macOS, Windows, Linux)
 """

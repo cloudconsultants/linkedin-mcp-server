@@ -32,10 +32,10 @@ def create_mcp_server() -> FastMCP:
     @mcp.tool()
     async def close_session() -> Dict[str, Any]:
         """Close the current browser session and clean up resources."""
-        from linkedin_mcp_server.drivers.chrome import close_all_drivers
+        from linkedin_mcp_server.session.manager import PlaywrightSessionManager
 
         try:
-            close_all_drivers()
+            await PlaywrightSessionManager.close_all_sessions()
             return {
                 "status": "success",
                 "message": "Successfully closed the browser session and cleaned up resources",
@@ -51,6 +51,11 @@ def create_mcp_server() -> FastMCP:
 
 def shutdown_handler() -> None:
     """Clean up resources on shutdown."""
-    from linkedin_mcp_server.drivers.chrome import close_all_drivers
+    # TODO: Add proper async cleanup for Playwright sessions
+    import asyncio
+    from linkedin_mcp_server.session.manager import PlaywrightSessionManager
 
-    close_all_drivers()
+    try:
+        asyncio.run(PlaywrightSessionManager.close_all_sessions())
+    except Exception:
+        pass  # Ignore cleanup errors during shutdown

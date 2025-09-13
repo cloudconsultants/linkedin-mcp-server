@@ -4,7 +4,7 @@ LinkedIn MCP Server - Main CLI application entry point.
 
 Implements a three-phase startup:
 1. Authentication Setup Phase - Credential validation and session establishment
-2. Driver Management Phase - Chrome WebDriver initialization with LinkedIn login
+2. Browser Session Phase - Playwright browser initialization with LinkedIn login
 3. Server Runtime Phase - MCP server startup with transport selection
 
 """

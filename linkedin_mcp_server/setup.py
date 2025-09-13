@@ -101,8 +101,11 @@ def temporary_playwright_session() -> Iterator:
 
     session = None
     try:
-        # Create temporary session
-        session = LinkedInSession()
+        # Create temporary session with placeholder auth
+        from linkedin_mcp_server.scraper.auth import CookieAuth
+
+        auth = CookieAuth("placeholder")
+        session = LinkedInSession(auth)
         yield session
     finally:
         if session:
@@ -134,27 +137,32 @@ async def capture_cookie_from_credentials(email: str, password: str) -> str:
     interactive: bool = config.is_interactive
     logger.info(f"Logging in to LinkedIn... Interactive: {interactive}")
 
-    # Create session and login
-    session = LinkedInSession()
-    try:
-        async with session:
-            # Login using Playwright
-            await session.login_with_credentials(
-                email=email,
-                password=password,
-                headless=config.chrome.headless,
-                timeout=60000,  # 60 seconds timeout
-            )
+    # Create session with password authentication
+    from linkedin_mcp_server.scraper.auth import PasswordAuth
 
-            # Extract cookie from browser context
-            cookie = await session.get_session_cookie()
-            if cookie:
-                logger.info("Successfully captured session cookie")
-                return cookie
-            else:
-                raise Exception("Failed to capture session cookie from browser")
+    auth = PasswordAuth(email, password, interactive=interactive)
+    _session = LinkedInSession(
+        auth, headless=config.chrome.headless
+    )  # Will be used in future implementation
+
+    try:
+        # TODO: Login and cookie extraction needs to be implemented
+        # This is a placeholder for now
+        raise NotImplementedError(
+            "Cookie extraction not yet implemented with Playwright"
+        )
+
+        # Future implementation would be:
+        # await session.login()
+        # cookie = await session.get_session_cookie()
+        # if cookie:
+        #     logger.info("Successfully captured session cookie")
+        #     return cookie
+        # else:
+        #     raise Exception("Failed to capture session cookie from browser")
     finally:
-        await session.close()
+        # await session.close()  # TODO: Implement session cleanup
+        pass
 
 
 async def test_cookie_validity(cookie: str) -> bool:

@@ -41,7 +41,7 @@ Suggest improvements for my CV to target this job posting https://www.linkedin.c
 > - **Session Management** (`close_session`): Properly close browser session and clean up resources
 
 > [!NOTE]
-> July 2025: All tools are currently functional and actively maintained. If you encounter any issues, please report them in the [GitHub issues](https://github.com/stickerdaniel/linkedin-mcp-server/issues).
+> January 2025: All tools are currently functional and actively maintained using Playwright browser automation (migrated from Selenium). If you encounter any issues, please report them in the [GitHub issues](https://github.com/stickerdaniel/linkedin-mcp-server/issues).
 
 <br/>
 <br/>
@@ -49,6 +49,20 @@ Suggest improvements for my CV to target this job posting https://www.linkedin.c
 ## 🐳 Docker Setup (Recommended - Universal)
 
 **Prerequisites:** Make sure you have [Docker](https://www.docker.com/get-started/) installed and running.
+
+### Available Docker Images
+
+We provide several Docker image variants optimized for different use cases:
+
+| Image Variant | Build Command | Size | Use Case |
+|---------------|---------------|------|----------|
+| **Standard** | `docker build -t linkedin-mcp .` | ~500MB | Development, debugging |
+| **Runtime** | `docker build -f Dockerfile.runtime -t linkedin-mcp:runtime .` | ~400MB | Production, balanced size |
+| **Minimal** | `docker build -f Dockerfile.minimal -t linkedin-mcp:minimal .` | ~300MB | Resource-constrained environments |
+| **Alpine** | `docker build -f Dockerfile.alpine -t linkedin-mcp:alpine .` | ~250MB | Ultra-minimal, Alpine Linux based |
+
+> [!TIP]
+> **Recommendation:** Use `Dockerfile.runtime` for production deployments as it provides the best balance of size optimization and functionality.
 
 ### Installation
 
@@ -341,15 +355,10 @@ uvx --from git+https://github.com/stickerdaniel/linkedin-mcp-server linkedin-mcp
 
 ## 🐍 Local Setup (Develop & Contribute)
 
-**Prerequisites:** [Chrome browser](https://www.google.com/chrome/) and [Git](https://git-scm.com/downloads) installed
+**Prerequisites:** [Git](https://git-scm.com/downloads) installed
 
-**ChromeDriver Setup:**
-1. **Check Chrome version**: Chrome → menu (⋮) → Help → About Google Chrome
-2. **Download matching ChromeDriver**: [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/)
-3. **Make it accessible**:
-   - Place ChromeDriver in PATH (`/usr/local/bin` on macOS/Linux)
-   - Or set: `export CHROMEDRIVER_PATH=/path/to/chromedriver`
-   - if no CHROMEDRIVER_PATH is set, the server will try to find it automatically by checking common locations
+> [!NOTE]
+> Playwright automatically manages browser installations - no need to install Chrome manually!
 
 ### Installation
 
@@ -421,9 +430,9 @@ uv run -m linkedin_mcp_server --transport streamable-http --host 127.0.0.1 --por
 - Add `--log-level DEBUG` to see more detailed logging
 - Make sure you have only one active LinkedIn session per cookie at a time. Trying to open multiple sessions with the same cookie will result in a cookie invalid error. E.g. if you have a logged in browser session with a docker container, you can't use the same cookie to login with the local setup while the docker container is running / session is not closed.
 
-**ChromeDriver issues:**
-- Ensure Chrome and ChromeDriver versions match
-- Check ChromeDriver is in PATH or set `CHROMEDRIVER_PATH` in your env
+**Browser issues:**
+- Playwright automatically installs and manages browsers
+- If browser fails to launch, try: `uv run patchright install chromium`
 
 **Python issues:**
 - Check Python version: `uv python --version` (should be 3.12+)

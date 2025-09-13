@@ -14,9 +14,8 @@ Key Functions:
 """
 
 import logging
-import os
 import platform
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import keyring
 from keyring.errors import KeyringError
@@ -171,25 +170,3 @@ def clear_all_keychain_data() -> bool:
     else:
         logger.error("Failed to clear some LinkedIn data from keyring")
         return False
-
-
-def get_chromedriver_paths() -> List[str]:
-    """Get possible ChromeDriver paths based on the platform."""
-    paths = [
-        os.path.join(os.path.dirname(__file__), "../../../../drivers/chromedriver"),
-        os.path.join(os.path.expanduser("~"), "chromedriver"),
-        "/usr/local/bin/chromedriver",
-        "/usr/bin/chromedriver",
-        "/opt/homebrew/bin/chromedriver",
-        "/Applications/chromedriver",
-    ]
-
-    if platform.system() == "Windows":
-        paths.extend(
-            [
-                "C:\\Program Files\\chromedriver.exe",
-                "C:\\Program Files (x86)\\chromedriver.exe",
-            ]
-        )
-
-    return paths

@@ -130,5 +130,7 @@ def get_debug_logger() -> SessionDebugLogger:
     global debug_logger
     if debug_logger is None:
         init_debug_logger()
-    assert debug_logger is not None
+    if debug_logger is None:
+        # Fallback initialization if init_debug_logger() failed
+        debug_logger = SessionDebugLogger(DebugLevel.BASIC, {"session"})
     return debug_logger

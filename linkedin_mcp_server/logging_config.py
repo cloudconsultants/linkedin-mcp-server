@@ -108,6 +108,6 @@ def configure_logging(log_level: str = "WARNING", json_format: bool = False) -> 
     root_logger.addHandler(console_handler)
 
     # Set specific loggers to reduce noise
-    logging.getLogger("selenium").setLevel(logging.ERROR)
     logging.getLogger("urllib3").setLevel(logging.ERROR)
     logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
+    logging.getLogger("playwright").setLevel(logging.ERROR)

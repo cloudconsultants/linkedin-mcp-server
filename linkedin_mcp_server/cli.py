@@ -57,8 +57,6 @@ def print_claude_config() -> None:
         env_vars["LINKEDIN_EMAIL"] = config.linkedin.email
     if config.linkedin.password:
         env_vars["LINKEDIN_PASSWORD"] = config.linkedin.password
-    if config.chrome.chromedriver_path:
-        env_vars["CHROMEDRIVER"] = config.chrome.chromedriver_path
 
     config_json: Dict[str, Any] = {
         "mcpServers": {
