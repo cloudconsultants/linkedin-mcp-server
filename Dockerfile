@@ -21,9 +21,9 @@ COPY pyproject.toml pyproject.toml
 # Generate fresh lock file
 RUN uv lock --no-cache
 
-# Install dependencies
+# Install dependencies (include dev to fix anyio._testing issue)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+    uv sync --frozen --no-install-project
 
 # Install ONLY Chrome with --with-deps (ensure system integration)
 RUN uv run patchright install chrome --with-deps
