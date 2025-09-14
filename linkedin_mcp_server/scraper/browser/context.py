@@ -3,7 +3,7 @@
 import logging
 from pathlib import Path
 from typing import Optional
-from playwright.async_api import BrowserContext, Page
+from patchright.async_api import BrowserContext, Page
 
 from ..config import StealthConfig, LinkedInDetectionError
 from .stealth_manager import StealthManager

@@ -3,7 +3,7 @@
 import os
 from typing import Optional
 
-from playwright.async_api import Page, Locator
+from patchright.async_api import Page, Locator
 from pydantic import HttpUrl
 
 from ...models.person import Person, Honor, Language

@@ -26,16 +26,11 @@ from linkedin_mcp_server.exceptions import (
     LinkedInMCPError,
 )
 
-# Import Playwright exceptions for additional error handling
-try:
-    from playwright._impl._errors import (
-        Error as PlaywrightError,
-        TimeoutError as PlaywrightTimeoutError,
-    )
-except ImportError:
-    # Fallback if playwright not installed yet
-    PlaywrightError: type[Exception] = Exception
-    PlaywrightTimeoutError: type[Exception] = Exception
+# Import Patchright exceptions for additional error handling
+from patchright.async_api import (
+    Error as PlaywrightError,
+    TimeoutError as PlaywrightTimeoutError,
+)
 
 
 def handle_tool_error(exception: Exception, context: str = "") -> Dict[str, Any]:

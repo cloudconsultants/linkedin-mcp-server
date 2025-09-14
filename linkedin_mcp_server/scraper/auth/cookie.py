@@ -1,5 +1,5 @@
 import logging
-from playwright.async_api import BrowserContext, Page
+from patchright.async_api import BrowserContext, Page
 
 from ..exceptions import InvalidCredentialsError
 from .base import LinkedInAuth

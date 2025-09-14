@@ -7,7 +7,7 @@ import re
 from typing import Optional
 from urllib.parse import urlparse
 
-from playwright.async_api import Page
+from patchright.async_api import Page
 
 from ..config import StealthConfig, LinkedInDetectionError
 

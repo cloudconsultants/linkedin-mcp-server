@@ -1,4 +1,4 @@
-from playwright.async_api import Page
+from patchright.async_api import Page
 
 from ..exceptions import (
     InvalidCredentialsError,

@@ -3,7 +3,7 @@
 import re
 from typing import Dict, Optional
 
-from playwright.async_api import Locator, Page
+from patchright.async_api import Locator, Page
 from pydantic import HttpUrl
 
 

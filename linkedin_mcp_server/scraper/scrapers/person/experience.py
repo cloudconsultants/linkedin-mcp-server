@@ -7,7 +7,7 @@ Based on successful patterns from legacy selenium implementation.
 import logging
 from typing import List, Optional
 
-from playwright.async_api import Page, Locator
+from patchright.async_api import Page, Locator
 from pydantic import HttpUrl
 
 from ...models.person import Person, Experience

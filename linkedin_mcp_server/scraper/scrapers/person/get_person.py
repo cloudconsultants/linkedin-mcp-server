@@ -1,7 +1,7 @@
 """Stealth-enhanced person profile scraper using Playwright."""
 
 import logging
-from playwright.async_api import Page
+from patchright.async_api import Page
 from pydantic import HttpUrl
 
 from ...config import PersonScrapingFields, LinkedInDetectionError

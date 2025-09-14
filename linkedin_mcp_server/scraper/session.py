@@ -1,6 +1,6 @@
 """High-level LinkedIn scraping session API."""
 
-from playwright.async_api import Page
+from patchright.async_api import Page
 
 from .auth import CookieAuth, LinkedInAuth, PasswordAuth
 from .browser import BrowserContextManager
