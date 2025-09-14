@@ -20,6 +20,10 @@ dependencies = [
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+include = ["linkedin_mcp_server*"]
+exclude = ["PRPs*", "assets*", "testdata*", "docs*", "tests*"]
+
 [dependency-groups]
 dev = [
     "aiohttp>=3.12.13",
