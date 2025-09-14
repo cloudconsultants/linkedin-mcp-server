@@ -199,7 +199,7 @@ cython_debug/
 CLAUDE.md
 
 # Project documentation and planning artifacts
-PRPs/
+# PRPs/
 testdata/
 
 # Development environment configurations

@@ -153,6 +153,16 @@ Application Code:        <1MB (<1%)
 - Fixed location parsing for remote positions
 - Improved salary range extraction
 
+### Docker Build & FastMCP Integration
+- **Fixed critical Docker build issue** where incomplete anyio package caused MCP server startup failures
+- **Resolved anyio package installation problem**: Docker was installing anyio 4.10.0 (broken PyPI package) instead of working 4.9.0 version
+- **Root cause analysis**: PyPI packaging regression in anyio 4.10.0 missing `_testing.py` modules required by FastMCP
+- **Solution implemented**:
+  - Pinned anyio to exact working version (4.9.0) in Dockerfile
+  - Switched from `uv sync` to `uv pip install` with `--no-cache-dir --refresh` for reliable installations
+  - Added verification step during Docker build to ensure complete anyio installation
+- **Improved Docker build reliability** with proper cache management and dependency verification
+
 ---
 
 ## 🔧 Technical Improvements

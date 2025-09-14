@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from playwright.async_api import BrowserContext, Page
+from patchright.async_api import BrowserContext, Page
 
 
 class LinkedInAuth(ABC):

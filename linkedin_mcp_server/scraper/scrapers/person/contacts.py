@@ -2,7 +2,7 @@
 
 import re
 
-from playwright.async_api import Page
+from patchright.async_api import Page
 from pydantic import HttpUrl
 
 from ...models.common import Connection, ContactInfo

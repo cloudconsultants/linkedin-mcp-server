@@ -50,6 +50,9 @@ Suggest improvements for my CV to target this job posting https://www.linkedin.c
 
 **Prerequisites:** Make sure you have [Docker](https://www.docker.com/get-started/) installed and running.
 
+> [!IMPORTANT]
+> **Known Issue with anyio 4.10.0+**: This project currently pins `anyio==4.9.0` due to PyPI packaging issues in later versions that cause FastMCP import failures. This is a temporary workaround until the upstream packaging issue is resolved.
+
 ### Available Docker Images
 
 We provide several Docker image variants optimized for different use cases:

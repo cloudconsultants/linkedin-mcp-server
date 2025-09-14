@@ -1,27 +1,21 @@
 [project]
 name = "linkedin-mcp-server"
-version = "1.4.0"
-description = "MCP server for LinkedIn profile, company, and job scraping with Claude AI integration. Supports direct profile/company/job URL scraping with secure credential storage."
-readme = "README.md"
+version = "1.5.0"
+description = "Optimized LinkedIn MCP Server"
 requires-python = ">=3.12"
 dependencies = [
     "fastmcp>=2.10.1",
     "inquirer>=3.4.0",
     "keyring>=25.6.0",
-    "playwright>=1.53.0",
     "pydantic>=2.11.7",
     "python-dotenv>=1.1.1",
     "rapidfuzz>=3.13.0",
-    "suffix-trees>=0.3.0",
     "pyperclip>=1.9.0",
     "patchright>=1.55.0",
     "fake-useragent>=1.4.0",
-    "asyncio-throttle>=1.0.2",
     "keyrings-alt>=5.0.2",
+    "anyio==4.9.0",
 ]
-
-[project.scripts]
-linkedin-mcp-server = "linkedin_mcp_server.cli_main:main"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
@@ -29,12 +23,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["linkedin_mcp_server*"]
-exclude = ["assets*", "docs*", "tests*"]
-
-[tool.setuptools.package-data]
-linkedin_mcp_server = ["py.typed"]
-
-
+exclude = ["PRPs*", "assets*", "testdata*", "docs*", "tests*"]
 
 [dependency-groups]
 dev = [

@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from playwright.async_api import BrowserContext, Browser
+from patchright.async_api import BrowserContext, Browser
 
 from ..config import BrowserConfig, StealthConfig, LinkedInDetectionError
 
@@ -26,22 +26,25 @@ class StealthManager:
     async def create_stealth_context(
         self, storage_state_path: Optional[str] = None
     ) -> BrowserContext:
-        """Create stealth browser context with fallback."""
+        """Create stealth browser context using patchright."""
         logger.info("Creating stealth browser context...")
 
         try:
             if self.config.use_patchright:
                 return await self._create_patchright_context(storage_state_path)
+            else:
+                # If patchright is disabled, try botright
+                if self.config.fallback_to_botright:
+                    logger.info("Using Botright...")
+                    return await self._create_botright_context(storage_state_path)
+                else:
+                    raise RuntimeError("No stealth browser configuration enabled")
         except Exception as e:
             logger.warning(f"Patchright failed: {e}")
             if self.config.fallback_to_botright:
                 logger.info("Falling back to Botright...")
                 return await self._create_botright_context(storage_state_path)
             raise
-
-        # This should never be reached, but ensures all paths return BrowserContext
-        logger.warning("Unexpected path in create_stealth_context, using fallback")
-        return await self._create_fallback_playwright_context(storage_state_path)
 
     async def _create_patchright_context(
         self, storage_state_path: Optional[str] = None
@@ -128,54 +131,6 @@ class StealthManager:
                 logger.info(f"Loaded storage state from {storage_state_path}")
 
         context.set_default_timeout(BrowserConfig.TIMEOUT)
-
-        return context
-
-    async def _create_fallback_playwright_context(
-        self, storage_state_path: Optional[str] = None
-    ) -> BrowserContext:
-        """Create browser context using regular Playwright with maximum stealth configuration."""
-        try:
-            from playwright.async_api import async_playwright
-
-            logger.info("Using fallback Playwright with stealth configuration")
-        except ImportError as e:
-            logger.error(f"Playwright not available: {e}")
-            raise
-
-        # Create Playwright instance
-        self.playwright_instance = async_playwright()
-        playwright = await self.playwright_instance.start()
-
-        # Browser launch arguments for maximum stealth
-        launch_args = {
-            "headless": self.config.headless,
-            "args": (
-                BrowserConfig.HEADLESS_STEALTH_ARGS
-                if self.config.headless
-                else BrowserConfig.STEALTH_CHROME_ARGS
-            ),
-        }
-
-        # Launch browser with stealth configuration
-        self.current_browser = await playwright.chromium.launch(**launch_args)
-
-        # Create context with stealth options
-        context_options = {
-            "user_agent": BrowserConfig.get_user_agent(),
-            "viewport": BrowserConfig.VIEWPORT,
-        }
-
-        # Load storage state if available
-        if storage_state_path and Path(storage_state_path).exists():
-            context_options["storage_state"] = storage_state_path
-            logger.info(f"Loading storage state from {storage_state_path}")
-
-        context = await self.current_browser.new_context(**context_options)
-        context.set_default_timeout(BrowserConfig.TIMEOUT)
-
-        # Inject stealth scripts
-        await self._inject_stealth_scripts(context)
 
         return context
 

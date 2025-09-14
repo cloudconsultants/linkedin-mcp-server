@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from playwright.async_api import Locator, Page
+from patchright.async_api import Locator, Page
 from pydantic import HttpUrl
 
 from ...models.common import Connection

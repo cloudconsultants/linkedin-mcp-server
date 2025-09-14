@@ -3,7 +3,7 @@
 import os
 from typing import Optional
 
-from playwright.async_api import Page, Locator
+from patchright.async_api import Page, Locator
 
 from ...models.person import Person, Interest
 from ..utils import scroll_to_half, scroll_to_bottom

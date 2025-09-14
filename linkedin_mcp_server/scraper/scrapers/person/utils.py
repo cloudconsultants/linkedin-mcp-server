@@ -3,7 +3,7 @@
 import re
 from typing import Optional
 
-from playwright.async_api import Locator
+from patchright.async_api import Locator
 from rapidfuzz import fuzz
 
 

@@ -35,7 +35,7 @@ class TestMigrationCompatibility:
         )
 
         if not os.path.exists(testdata_path):
-            pytest.skip(
+            pytest.skip(  # type: ignore[misc]
                 "testdata/testscrape.txt not found - required for compatibility testing"
             )
 
@@ -44,7 +44,7 @@ class TestMigrationCompatibility:
             # Extract JSON from the response section
             json_start = content.find('{\n  "name"')
             if json_start == -1:
-                pytest.fail("Could not find JSON data in testdata/testscrape.txt")
+                pytest.fail("Could not find JSON data in testdata/testscrape.txt")  # type: ignore[misc]
 
             json_content = content[json_start:]
             return json.loads(json_content)
@@ -239,7 +239,7 @@ class TestMigrationCompatibility:
                 print("\n=== COMPATIBILITY ERRORS ===")
                 for error in compatibility_errors:
                     print(f"❌ {error}")
-                pytest.fail(f"Found {len(compatibility_errors)} compatibility issues")
+                pytest.fail(f"Found {len(compatibility_errors)} compatibility issues")  # type: ignore[misc]
 
             print("✅ Perfect compatibility with testdata/testscrape.txt")
 

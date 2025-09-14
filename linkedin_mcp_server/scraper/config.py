@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Flag, auto
-from playwright.async_api import ViewportSize
+from patchright.async_api import ViewportSize
 from fake_useragent import UserAgent
 
 
