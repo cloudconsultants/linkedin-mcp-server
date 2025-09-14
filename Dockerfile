@@ -18,15 +18,29 @@ WORKDIR /build
 # Copy project configuration
 COPY pyproject.toml pyproject.toml
 
-# Generate fresh lock file
-RUN uv lock --no-cache
+# Create virtual environment and install dependencies directly
+RUN uv venv /build/.venv
 
-# Install dependencies (include dev to fix anyio._testing issue)
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project
+# Install dependencies using pip install (more reliable than sync)
+RUN uv pip install --no-cache-dir --refresh --python /build/.venv/bin/python \
+    fastmcp>=2.10.1 \
+    inquirer>=3.4.0 \
+    keyring>=25.6.0 \
+    pydantic>=2.11.7 \
+    python-dotenv>=1.1.1 \
+    rapidfuzz>=3.13.0 \
+    pyperclip>=1.9.0 \
+    patchright>=1.55.0 \
+    fake-useragent>=1.4.0 \
+    keyrings-alt>=5.0.2 \
+    anyio==4.9.0
+
+# Verify anyio installation is complete (should have _testing modules)
+RUN /build/.venv/bin/python -c "from anyio.abc import TestRunner; from anyio._core._testing import TaskInfo, get_current_task; print('✅ anyio installation verified complete')"
+
 
 # Install ONLY Chrome with --with-deps (ensure system integration)
-RUN uv run patchright install chrome --with-deps
+RUN /build/.venv/bin/python -m patchright install chrome --with-deps
 
 # Aggressive cleanup while preserving functionality
 RUN find /build/.venv -name "*.pyc" -delete \
