@@ -127,26 +127,26 @@ graph TD
     B --> C[Session Manager]
     C --> D[Stealth Manager]
     D --> E[Browser Context]
-    
+
     E --> F[Profile Navigation - 45s]
     F --> G[🔴 Search-First Navigation]
     G --> H[🔴 Fallback to Direct URL]
-    
+
     H --> I[Profile Reading - 30s]
     I --> J[🔴 Comprehensive Scrolling x3]
     J --> K[🔴 Fixed 2s Waits x8]
-    
+
     K --> L[Section Extraction - 160s]
     L --> M[🔴 Experience Scraper + Stealth]
-    L --> N[🔴 Education Scraper + Stealth] 
+    L --> N[🔴 Education Scraper + Stealth]
     L --> O[🔴 Other Sections + Stealth]
-    
+
     M --> P[🔴 Random Delays 20+ calls]
     N --> P
     O --> P
-    
+
     P --> Q[Profile Data - 295s total]
-    
+
     style G fill:#ff6b6b
     style H fill:#ff6b6b
     style J fill:#ff6b6b
@@ -166,26 +166,26 @@ sequenceDiagram
     participant SM as SessionManager
     participant BH as Behavioral
     participant Page as LinkedIn Page
-    
+
     MCP->>PS: get_person_profile(url)
     PS->>SM: get_or_create_session()
     SM->>BH: warm_linkedin_session() [10s]
-    
+
     PS->>BH: navigate_to_profile_stealthily() [45s]
     BH->>Page: Search navigation
     BH->>Page: Fallback to direct URL
     BH->>BH: random_delay() x5 [15s]
-    
+
     PS->>BH: simulate_profile_reading_behavior() [30s]
     BH->>BH: simulate_comprehensive_scrolling() x3
     BH->>Page: Fixed waits 2s x8 [16s]
-    
+
     loop Each Section (Experience, Education, etc.)
         PS->>BH: simulate_reading_scrolling() [15s]
         PS->>BH: random_delay() x4 [12s]
         PS->>Page: Extract section data
     end
-    
+
     PS->>MCP: Profile data [295s total]
 ```
 
@@ -201,7 +201,7 @@ sequenceDiagram
 │   ├── simulate_comprehensive_scrolling()  [15s avg]
 │   └── random_delay()                      [3s avg x15]
 │
-├── scrapers/person/get_person.py    24 calls  
+├── scrapers/person/get_person.py    24 calls
 │   ├── Main orchestration logic
 │   ├── Section-specific stealth calls
 │   └── Inter-section delay management
@@ -211,9 +211,9 @@ sequenceDiagram
     ├── Challenge detection
     └── Authentication stealth
 
-🟡 MEDIUM FREQUENCY (Section Scrapers)  
+🟡 MEDIUM FREQUENCY (Section Scrapers)
 ├── scrapers/person/experience.py    4 calls
-├── scrapers/person/education.py     4 calls  
+├── scrapers/person/education.py     4 calls
 ├── scrapers/person/contacts.py      9 calls
 ├── scrapers/person/interests.py     3 calls
 └── scrapers/person/accomplishments.py 4 calls
@@ -226,7 +226,7 @@ sequenceDiagram
 📈 IMPACT ANALYSIS:
 • 150+ total stealth calls per profile
 • 38% of time spent in random delays
-• 23% in redundant scrolling operations  
+• 23% in redundant scrolling operations
 • 15% in navigation overhead
 • 24% in actual data extraction
 ```
@@ -244,7 +244,7 @@ linkedin-mcp-server/
 │   ├── cli_main.py                 # Three-phase CLI startup
 │   └── __main__.py                 # Package entry point
 │
-├── 🔐 AUTHENTICATION LAYER  
+├── 🔐 AUTHENTICATION LAYER
 │   ├── authentication.py          # Keychain credential management
 │   └── scraper/auth/
 │       ├── cookie.py              # LinkedIn cookie extraction
@@ -334,7 +334,7 @@ linkedin-mcp-server/
 - **Components**: `tools/`, `types/`, `server.py`
 - **Responsibility**: Protocol compliance, input validation, response formatting
 
-#### **2. Session Management Layer** 
+#### **2. Session Management Layer**
 - **Purpose**: Browser session lifecycle and state management
 - **Components**: `session/`, `browser/`, `authentication.py`
 - **Responsibility**: Authentication, browser contexts, session persistence
@@ -371,13 +371,13 @@ Based on analysis of current detection patterns and industry research:
         "frequency": "Detects missing mouse movements during page interactions",
         "patterns": "Flags robotic linear movements or instant jumps"
     },
-    
+
     "timing_analysis": {
         "page_transitions": "Monitors time between navigation events",
         "scroll_patterns": "Detects unnatural scrolling (too fast/uniform)",
         "reading_time": "Flags insufficient time for human reading"
     },
-    
+
     "interaction_depth": {
         "element_focus": "Tracks focus events and keyboard navigation",
         "hover_events": "Monitors hover-before-click patterns",
@@ -398,14 +398,14 @@ LinkedIn collects extensive browser fingerprints:
         "audio_context": "Audio processing fingerprinting",
         "device_memory": "Available memory detection"
     },
-    
+
     "browser_environment": {
         "user_agent": "Browser version and platform analysis",
         "screen_resolution": "Display characteristics",
         "timezone_detection": "Geographic location inference",
         "language_settings": "Accept-Language headers and navigator.language"
     },
-    
+
     "automation_detection": {
         "webdriver_property": "Checks for navigator.webdriver",
         "automation_indicators": "Selenium/Chrome DevTools detection",
@@ -424,13 +424,13 @@ LinkedIn collects extensive browser fingerprints:
         "burst_detection": "Sudden activity spike identification",
         "session_duration": "Abnormally long session monitoring"
     },
-    
+
     "ip_analysis": {
-        "datacenter_detection": "VPS/Cloud provider IP identification", 
+        "datacenter_detection": "VPS/Cloud provider IP identification",
         "geographic_consistency": "IP location vs profile location",
         "reputation_scoring": "Known bot IP databases"
     },
-    
+
     "session_analysis": {
         "cookie_behavior": "Cookie acceptance and persistence",
         "referrer_validation": "Traffic source verification",
@@ -448,13 +448,13 @@ LinkedIn collects extensive browser fingerprints:
         "scroll_correlation": "Reading time vs content length",
         "return_visits": "Profile revisit patterns"
     },
-    
+
     "data_access_patterns": {
         "section_access_order": "Natural vs systematic data collection",
         "depth_of_exploration": "How thoroughly profiles are examined",
         "connection_patterns": "Network exploration behavior"
     },
-    
+
     "search_behavior": {
         "query_sophistication": "Human vs programmatic search terms",
         "result_interaction": "Click-through patterns on search results",
@@ -476,13 +476,13 @@ Our current implementation uses Patchright which provides:
         "chrome_runtime": "Hides Chrome DevTools Protocol traces",
         "permission_overrides": "Normalizes permission API responses"
     },
-    
+
     "fingerprint_randomization": {
         "user_agent_rotation": "Consistent but varied user agents",
-        "viewport_randomization": "Natural viewport size variations", 
+        "viewport_randomization": "Natural viewport size variations",
         "timezone_spoofing": "Consistent geographic location simulation"
     },
-    
+
     "network_normalization": {
         "header_ordering": "Natural HTTP header sequence",
         "tls_fingerprinting": "Matches real browser TLS signatures",
@@ -491,7 +491,7 @@ Our current implementation uses Patchright which provides:
 }
 ```
 
-#### **2. Behavioral Simulation** 
+#### **2. Behavioral Simulation**
 Current `behavioral.py` implements:
 
 ```python
@@ -502,13 +502,13 @@ Current `behavioral.py` implements:
         "velocity_variation": "Realistic acceleration/deceleration",
         "random_movements": "Idle mouse movements during page load"
     },
-    
+
     "reading_pattern_simulation": {
         "progressive_scrolling": "Gradual content exploration",
         "backtrack_scrolling": "Human-like re-reading behavior",
         "section_focus": "Realistic attention distribution"
     },
-    
+
     "timing_randomization": {
         "variable_delays": "Random but realistic interaction timing",
         "typing_simulation": "Character-by-character input with delays",
@@ -526,13 +526,13 @@ Current `behavioral.py` implements:
         "cookie_rotation": "Periodic session refresh without detection",
         "header_consistency": "Maintains session-consistent headers"
     },
-    
+
     "rate_limiting": {
-        "request_spacing": "Configurable delays between requests", 
+        "request_spacing": "Configurable delays between requests",
         "burst_prevention": "Prevents rapid-fire request patterns",
         "daily_limits": "Respects realistic usage boundaries"
     },
-    
+
     "error_handling": {
         "challenge_detection": "Recognizes CAPTCHA/verification screens",
         "graceful_degradation": "Handles rate limiting gracefully",
@@ -551,12 +551,12 @@ STEALTH_STACK = {
         "patchright": "1.55.0+",  # Enhanced Playwright fork
         "benefits": [
             "Built-in stealth patches",
-            "Chrome browser channel support", 
+            "Chrome browser channel support",
             "Advanced fingerprint protection",
             "Real browser engine (not headless detection)"
         ]
     },
-    
+
     "session_management": {
         "keyring": "Latest",  # Secure credential storage
         "benefits": [
@@ -565,12 +565,12 @@ STEALTH_STACK = {
             "Secure multi-user support"
         ]
     },
-    
+
     "request_handling": {
         "httpx": "Latest",  # Modern HTTP client
         "benefits": [
             "HTTP/2 support",
-            "Connection pooling", 
+            "Connection pooling",
             "Real browser-like requests"
         ]
     }
@@ -586,17 +586,17 @@ class StealthConfig:
     base_delay_range: tuple = (1.5, 4.0)      # Random interaction delays
     reading_delay_range: tuple = (2.0, 6.0)   # Content reading simulation
     typing_delay_range: tuple = (0.05, 0.15)  # Character typing delays
-    
-    # Behavioral parameters  
+
+    # Behavioral parameters
     mouse_movement_probability: float = 0.7    # Random mouse movement chance
     scroll_back_probability: float = 0.3       # Backtrack scrolling chance
     hover_probability: float = 0.4             # Element hover chance
-    
+
     # Detection avoidance
     use_search_navigation: bool = True         # Search-first vs direct navigation
     enable_comprehensive_scrolling: bool = True # Full page content loading
     simulate_reading_behavior: bool = True     # Human reading patterns
-    
+
     # Session protection
     rate_limit_per_minute: int = 1            # Profiles per minute limit
     max_daily_profiles: int = 100             # Daily scraping limit
@@ -608,20 +608,20 @@ class StealthConfig:
 # Challenge detection patterns in behavioral.py:
 DETECTION_PATTERNS = {
     "url_indicators": [
-        "challenge", "checkpoint", "security", 
+        "challenge", "checkpoint", "security",
         "verify", "captcha", "blocked"
     ],
-    
+
     "element_selectors": [
         '[data-test-id*="challenge"]',
-        '[class*="security"]', 
+        '[class*="security"]',
         'text="Please complete this security check"',
         'text="We want to make sure it\'s really you"'
     ],
-    
+
     "content_validation": [
         "Empty profile content detection",
-        "Missing key sections identification", 
+        "Missing key sections identification",
         "Redirect loop detection"
     ]
 }
@@ -635,25 +635,25 @@ DETECTION_PATTERNS = {
 MISSING_CAPABILITIES = {
     "advanced_fingerprinting": [
         "Canvas fingerprint randomization",
-        "WebGL fingerprint spoofing", 
+        "WebGL fingerprint spoofing",
         "Audio context fingerprint variation",
         "Font enumeration masking"
     ],
-    
+
     "behavioral_sophistication": [
         "Machine learning-based timing patterns",
         "Realistic typing rhythm simulation",
         "Natural scroll velocity curves",
         "Attention heatmap simulation"
     ],
-    
+
     "network_stealth": [
-        "TLS fingerprint randomization", 
+        "TLS fingerprint randomization",
         "HTTP/2 priority simulation",
         "Network timing jitter",
         "DNS-over-HTTPS support"
     ],
-    
+
     "session_intelligence": [
         "Adaptive rate limiting based on success rates",
         "Dynamic stealth level adjustment",
@@ -673,14 +673,14 @@ CURRENT_LIMITATIONS = {
         "Fixed timing patterns (not adaptive)",
         "Profile-only stealth (not multi-section)"
     ],
-    
+
     "detection_avoidance": [
-        "Basic behavioral patterns only", 
+        "Basic behavioral patterns only",
         "Limited fingerprint protection",
         "No machine learning adaptation",
         "Static rate limiting"
     ],
-    
+
     "scalability": [
         "Cannot handle multiple content types",
         "No intelligent content detection",
@@ -703,20 +703,20 @@ CURRENT_LIMITATIONS = {
 # REPEATED IN EVERY SECTION FILE (experience.py, education.py, etc.):
 
 async def scrape_[SECTION]_main_page(page: Page, person: Person) -> None:
-    # ❌ DUPLICATE: Same stealth behavior in every section  
+    # ❌ DUPLICATE: Same stealth behavior in every section
     await simulate_profile_reading_behavior(page)
-    
+
     # ❌ DUPLICATE: Same section finding logic
     section = page.locator("section:has(#[section])").first
-    
+
     # ❌ DUPLICATE: Same lazy loading wait
     await section.scroll_into_view_if_needed()
     await page.wait_for_timeout(2000)
-    
+
     # ❌ DUPLICATE: Same fallback selector logic
     for alt_selector in SECTION_ALT:
         # ... identical fallback pattern
-    
+
     # ❌ DUPLICATE: Same item extraction pattern
     items = await section.locator("div[data-view-name='profile-component-entity']").all()
 ```
@@ -725,13 +725,13 @@ async def scrape_[SECTION]_main_page(page: Page, person: Person) -> None:
 ```
 CURRENT: Section-by-section with stealth delays
 ├── Experience section:     40s (stealth + extraction)
-├── Education section:      35s (stealth + extraction) 
+├── Education section:      35s (stealth + extraction)
 ├── Interests section:      25s (stealth + extraction)
 ├── Accomplishments:        30s (stealth + extraction)
 ├── Contacts section:       30s (stealth + extraction)
 └── Total:                 160s (54% of total scraping time)
 
-PROPOSED: Unified page extraction  
+PROPOSED: Unified page extraction
 ├── Single stealth pass:    15s (one comprehensive behavior)
 ├── All sections extracted: 25s (parallel DOM parsing)
 └── Total:                 40s (75% improvement in section extraction)
@@ -758,21 +758,21 @@ PROPOSED: Unified page extraction
 ```python
 class ProfilePageScraper:
     """Unified LinkedIn profile page extraction with single stealth pass."""
-    
+
     async def scrape_profile_page(
-        self, 
-        page: Page, 
-        url: str, 
+        self,
+        page: Page,
+        url: str,
         fields: PersonScrapingFields
     ) -> Person:
         """Extract all profile data with single stealth operation."""
-        
+
         # Phase 1: Single stealth navigation and behavior simulation
         await self.stealth_controller.navigate_and_prepare_page(page, url)
-        
+
         # Phase 2: Comprehensive content loading (once for entire page)
         await self.stealth_controller.ensure_all_content_loaded(page)
-        
+
         # Phase 3: Parallel section extraction (no additional stealth needed)
         extraction_tasks = []
         if PersonScrapingFields.BASIC_INFO in fields:
@@ -782,10 +782,10 @@ class ProfilePageScraper:
         if PersonScrapingFields.EDUCATION in fields:
             extraction_tasks.append(self._extract_education(page))
         # ... other sections
-        
+
         # Execute all extractions in parallel (DOM is already loaded)
         results = await asyncio.gather(*extraction_tasks, return_exceptions=True)
-        
+
         # Phase 4: Combine results into Person model
         return self._build_person_model(results)
 ```
@@ -794,21 +794,21 @@ class ProfilePageScraper:
 ```python
 class LinkedInProfileSelectors:
     """Centralized selectors for entire profile page."""
-    
+
     # Page-level selectors
     PROFILE_CONTAINER = "main.scaffold-layout__main"
     LAZY_LOAD_TRIGGER = "section[data-view-name*='profile-']"
-    
+
     # Section identification (used once to map all sections)
     SECTIONS = {
         "basic_info": "section[data-view-name='profile-top-card']",
-        "about": "section[data-view-name='profile-about']", 
+        "about": "section[data-view-name='profile-about']",
         "experience": "section[data-view-name='profile-experience']",
         "education": "section[data-view-name='profile-education']",
         "accomplishments": "section[data-view-name='profile-accomplishments']",
         "interests": "section[data-view-name='profile-interests']"
     }
-    
+
     # Universal item selector (works for all sections)
     SECTION_ITEMS = "div[data-view-name='profile-component-entity']"
 ```
@@ -823,19 +823,19 @@ PERFORMANCE_GAINS = {
         "proposed": "1x stealth call (entire page)",
         "improvement": "83% reduction in stealth overhead"
     },
-    
+
     "dom_parsing": {
         "current": "Sequential section parsing with delays",
-        "proposed": "Parallel extraction from loaded DOM", 
+        "proposed": "Parallel extraction from loaded DOM",
         "improvement": "60% faster data extraction"
     },
-    
+
     "code_maintainability": {
         "current": "6 section files with duplicated logic",
         "proposed": "1 unified page scraper",
         "improvement": "80% code reduction, single point of maintenance"
     },
-    
+
     "scalability": {
         "current": "Each new section requires new file + stealth logic",
         "proposed": "New sections are just new extractors in same file",
@@ -859,7 +859,7 @@ linkedin_mcp_server/scraper/
 │
 └── extractors/              # Shared extraction utilities
     ├── profile_extractors.py   # Profile-specific field extraction
-    ├── job_extractors.py       # Job-specific field extraction  
+    ├── job_extractors.py       # Job-specific field extraction
     └── common_extractors.py    # Shared extraction patterns
 ```
 
@@ -867,28 +867,28 @@ linkedin_mcp_server/scraper/
 ```python
 class LinkedInPageScraper(ABC):
     """Base class for all LinkedIn page types."""
-    
+
     def __init__(self, stealth_controller: StealthController):
         self.stealth_controller = stealth_controller
-        
+
     @abstractmethod
     async def scrape_page(self, page: Page, url: str, fields: Enum) -> Any:
         """Implement page-specific scraping logic."""
         pass
-        
+
     async def _prepare_page(self, page: Page, url: str) -> None:
         """Common page preparation (navigation + stealth)."""
         await self.stealth_controller.navigate_and_prepare_page(page, url)
 
 # Concrete implementations:
-class ProfilePageScraper(LinkedInPageScraper): 
+class ProfilePageScraper(LinkedInPageScraper):
     async def scrape_page(self, page, url, fields: PersonScrapingFields) -> Person:
         # Profile-specific implementation
-        
+
 class JobPageScraper(LinkedInPageScraper):
     async def scrape_page(self, page, url, fields: JobScrapingFields) -> Job:
         # Job-specific implementation
-        
+
 class CompanyPageScraper(LinkedInPageScraper):
     async def scrape_page(self, page, url, fields: CompanyScrapingFields) -> Company:
         # Company-specific implementation

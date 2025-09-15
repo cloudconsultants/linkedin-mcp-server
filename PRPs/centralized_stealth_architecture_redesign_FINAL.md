@@ -40,7 +40,7 @@ result = await get_person_profile("username")  # Same API, 75% faster
 
 # NEW: Configurable speed vs stealth via environment variables
 export STEALTH_PROFILE=NO_STEALTH        # 50s, maximum speed
-export STEALTH_PROFILE=MINIMAL_STEALTH   # 75s, good balance  
+export STEALTH_PROFILE=MINIMAL_STEALTH   # 75s, good balance
 export STEALTH_PROFILE=MAXIMUM_STEALTH   # 295s, current system
 
 # NEW: Support for additional LinkedIn content (future)
@@ -58,7 +58,7 @@ await get_company_profile("company")     # Company support
 
 ### Success Criteria
 - [ ] **75% speed improvement** with MINIMAL_STEALTH profile (300s → 75s)
-- [ ] **85% speed improvement** with NO_STEALTH profile (300s → 50s) 
+- [ ] **85% speed improvement** with NO_STEALTH profile (300s → 50s)
 - [ ] **Zero data quality regression** (>95% field completeness maintained)
 - [ ] **Single configuration point** for all stealth behavior
 - [ ] **Multi-content support** framework ready for jobs/companies
@@ -73,11 +73,11 @@ await get_company_profile("company")     # Company support
 - url: https://github.com/kaliiiiiiiiii-vinyzu/patchright-python
   why: Advanced Patchright stealth features and isolated execution contexts
   critical: Runtime.enable leak prevention, proper fingerprint masking
-  
-- url: https://github.com/vinyzu/botright  
+
+- url: https://github.com/vinyzu/botright
   why: Configuration-based stealth levels and performance optimization patterns
   critical: mask_fingerprint settings, headless stealth configuration
-  
+
 - url: https://github.com/rebrowser/rebrowser-patches
   why: Environment variable configuration patterns for stealth systems
   critical: REBROWSER_PATCHES_* environment variable approaches
@@ -86,7 +86,7 @@ await get_company_profile("company")     # Company support
   why: Current stealth implementation - contains core functions to centralize
   critical: navigate_to_profile_stealthily, simulate_comprehensive_scrolling patterns
 
-- file: linkedin_mcp_server/scraper/scrapers/person/get_person.py  
+- file: linkedin_mcp_server/scraper/scrapers/person/get_person.py
   why: Main orchestration logic showing scattered stealth calls
   critical: Current performance bottlenecks and redundant operations
 
@@ -224,7 +224,7 @@ class SimulationLevel(Enum):
     MODERATE = "moderate"       # Some interaction patterns
     COMPREHENSIVE = "comprehensive"  # Full behavior simulation (current)
 
-@dataclass  
+@dataclass
 class DelayConfig:
     """Centralized delay configurations"""
     base: Tuple[float, float]      # Random base delays
@@ -236,17 +236,17 @@ class ContentTarget(Enum):
     """Content sections with intelligent loading"""
     # Profile targets
     BASIC_INFO = "basic_info"
-    EXPERIENCE = "experience" 
+    EXPERIENCE = "experience"
     EDUCATION = "education"
     SKILLS = "skills"
     ACCOMPLISHMENTS = "accomplishments"
     CONTACTS = "contacts"
-    
+
     # Future: Job targets
     JOB_DESCRIPTION = "job_description"
     COMPANY_INFO = "company_info"
-    
-    # Future: Company targets  
+
+    # Future: Company targets
     COMPANY_OVERVIEW = "company_overview"
     EMPLOYEES = "employees"
 
@@ -277,7 +277,7 @@ Task 2: IMPLEMENT intelligent content loading
     - IMPLEMENT content-specific selectors mapping
     - REPLACE hardcoded page.wait_for_timeout() calls
 
-Task 3: IMPLEMENT navigation strategies  
+Task 3: IMPLEMENT navigation strategies
   - CREATE linkedin_mcp_server/scraper/stealth/navigation.py
     - IMPLEMENT NavigationStrategy class
     - IMPLEMENT direct navigation (fast path)
@@ -359,21 +359,21 @@ Task 12: IMPLEMENT legacy compatibility layer
 # Task 5: ProfilePageScraper - Core architectural change
 class ProfilePageScraper(LinkedInPageScraper):
     """Unified LinkedIn profile page extraction with single stealth pass"""
-    
+
     async def scrape_profile_page(
-        self, 
-        page: Page, 
-        url: str, 
+        self,
+        page: Page,
+        url: str,
         fields: PersonScrapingFields
     ) -> Person:
         """Extract all profile data with single stealth operation"""
-        
+
         # Phase 1: Single stealth navigation and behavior simulation
         await self.stealth_controller.navigate_and_prepare_page(page, url)
-        
-        # Phase 2: Comprehensive content loading (once for entire page)  
+
+        # Phase 2: Comprehensive content loading (once for entire page)
         await self.stealth_controller.ensure_all_content_loaded(page, self._get_targets(fields))
-        
+
         # Phase 3: Parallel section extraction (no additional stealth needed)
         extraction_tasks = []
         if PersonScrapingFields.BASIC_INFO in fields:
@@ -381,17 +381,17 @@ class ProfilePageScraper(LinkedInPageScraper):
         if PersonScrapingFields.EXPERIENCE in fields:
             extraction_tasks.append(self._extract_experiences(page))
         # ... other sections
-        
+
         # Execute all extractions in parallel (DOM is already loaded)
         results = await asyncio.gather(*extraction_tasks, return_exceptions=True)
-        
+
         # Phase 4: Combine results into Person model
         return self._build_person_model(results)
 
 # Task 2: LazyLoadDetector - Intelligent content loading
 class LazyLoadDetector:
     """Smart content loading detection replacing hardcoded waits"""
-    
+
     async def ensure_content_loaded(
         self,
         page: Page,
@@ -399,24 +399,24 @@ class LazyLoadDetector:
         max_wait_time: int = 30
     ) -> ContentLoadResult:
         """Intelligently load content instead of blind waiting"""
-        
+
         start_time = time.time()
         loaded_targets = set()
-        
+
         # Phase 1: Check what's already loaded
         for target in targets:
             if await self._is_content_loaded(page, target):
                 loaded_targets.add(target)
-        
+
         if len(loaded_targets) == len(targets):
             return ContentLoadResult(success=True, load_time=0)
-        
+
         # Phase 2: Smart scrolling to trigger lazy loading
         missing_targets = [t for t in targets if t not in loaded_targets]
         scroll_strategy = self._get_scroll_strategy(missing_targets)
-        
+
         await self._execute_scroll_strategy(page, scroll_strategy)
-        
+
         # Phase 3: Monitor for content appearance with DOM mutation detection
         while (time.time() - start_time) < max_wait_time:
             newly_loaded = []
@@ -424,15 +424,15 @@ class LazyLoadDetector:
                 if await self._is_content_loaded(page, target):
                     newly_loaded.append(target)
                     loaded_targets.add(target)
-            
+
             for target in newly_loaded:
                 missing_targets.remove(target)
-            
+
             if not missing_targets:
                 break
-                
+
             await asyncio.sleep(0.5)  # Brief check interval
-        
+
         return ContentLoadResult(
             success=len(loaded_targets) == len(targets),
             loaded_targets=list(loaded_targets),
@@ -443,14 +443,14 @@ class LazyLoadDetector:
 # Task 1: StealthController - Central control system
 class StealthController:
     """Central control system for all LinkedIn scraping stealth operations"""
-    
+
     def __init__(self, profile: StealthProfile, telemetry: bool = True):
         self.profile = profile
         self.lazy_detector = LazyLoadDetector()
         self.navigator = NavigationStrategy(profile.navigation)
         self.simulator = InteractionSimulator(profile.simulation)
         self.telemetry = PerformanceTelemetry() if telemetry else None
-    
+
     async def scrape_linkedin_page(
         self,
         page: Page,
@@ -459,31 +459,31 @@ class StealthController:
         content_targets: List[ContentTarget]
     ) -> ScrapingResult:
         """Universal LinkedIn page scraping with centralized stealth control"""
-        
+
         start_time = time.time()
-        
+
         try:
             # Phase 1: Navigation (context-aware)
             await self.navigator.navigate_to_page(page, url, page_type)
-            
+
             # Phase 2: Content Loading (intelligent)
             load_result = await self.lazy_detector.ensure_content_loaded(page, content_targets)
             if not load_result.success:
                 logger.warning(f"Content loading incomplete: {load_result.missing_targets}")
-            
+
             # Phase 3: Interaction Simulation (configurable)
             await self.simulator.simulate_page_interaction(page, page_type)
-            
+
             # Phase 4: Data Extraction (delegated to specific scrapers)
             result = await self._extract_page_data(page, page_type, content_targets)
-            
+
             # Phase 5: Performance tracking
             if self.telemetry:
                 duration = time.time() - start_time
                 await self.telemetry.record_success(url, duration, self.profile.name)
-            
+
             return result
-            
+
         except LinkedInDetectionError as e:
             if self.telemetry:
                 await self.telemetry.record_detection(url, str(e))
@@ -539,11 +539,11 @@ def test_stealth_controller_no_stealth_mode():
     """NO_STEALTH profile achieves target performance"""
     controller = StealthController(StealthProfile.NO_STEALTH())
     start_time = time.time()
-    
+
     result = await controller.scrape_linkedin_page(
         page, profile_url, PageType.PROFILE, [ContentTarget.BASIC_INFO]
     )
-    
+
     duration = time.time() - start_time
     assert duration < 10  # Target: <10s for basic info
     assert result.success
@@ -552,12 +552,12 @@ def test_stealth_controller_no_stealth_mode():
 def test_lazy_load_detector_content_detection():
     """LazyLoadDetector properly detects loaded content"""
     detector = LazyLoadDetector()
-    
+
     # Mock page with content already loaded
     result = await detector.ensure_content_loaded(
         mock_page, [ContentTarget.EXPERIENCE], max_wait_time=5
     )
-    
+
     assert result.success
     assert ContentTarget.EXPERIENCE in result.loaded_targets
     assert result.load_time < 1  # Should detect immediately
@@ -566,11 +566,11 @@ def test_performance_regression_prevention():
     """New system maintains data quality vs legacy"""
     legacy_result = await legacy_person_scraper.scrape_profile(url)
     new_result = await new_profile_page_scraper.scrape_profile_page(url, fields)
-    
+
     # Data completeness comparison
     assert len(new_result.experiences) >= len(legacy_result.experiences) * 0.95
     assert len(new_result.educations) >= len(legacy_result.educations) * 0.95
-    
+
     # Critical fields preservation
     assert new_result.name == legacy_result.name
     assert new_result.headline == legacy_result.headline
@@ -603,7 +603,7 @@ uv run python benchmark_stealth_performance.py \
 
 # Expected output:
 # NO_STEALTH:      50s avg (83% improvement)
-# MINIMAL_STEALTH: 75s avg (75% improvement) 
+# MINIMAL_STEALTH: 75s avg (75% improvement)
 # MAXIMUM_STEALTH: 295s avg (baseline)
 
 # Data completeness validation
@@ -660,7 +660,7 @@ curl -X POST http://localhost:8000/mcp \
 - ❌ **Don't skip performance benchmarking** - validate every optimization claim
 - ❌ **Don't break MCP tool interfaces** - maintain exact compatibility
 - ❌ **Don't remove legacy system immediately** - enable gradual migration
-- ❌ **Don't ignore data completeness** - speed improvements must preserve data quality  
+- ❌ **Don't ignore data completeness** - speed improvements must preserve data quality
 - ❌ **Don't hardcode stealth settings** - everything must be configurable
 - ❌ **Don't use synchronous operations** - all stealth must be async/await
 - ❌ **Don't modify Patchright internals** - work within the provided API
@@ -678,10 +678,10 @@ Profile Scraping Speed:
   Current Baseline: 295 seconds
   MINIMAL_STEALTH Target: 75 seconds (75% improvement)
   NO_STEALTH Target: 50 seconds (83% improvement)
-  
+
 Speed Breakdown Improvement:
   Navigation: 45s → 5s (89% improvement)
-  Content Loading: 30s → 12s (60% improvement)  
+  Content Loading: 30s → 12s (60% improvement)
   Section Extraction: 160s → 25s (84% improvement)
   Random Delays: 65s → 8s (88% improvement)
 
