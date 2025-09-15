@@ -119,7 +119,8 @@ class InteractionSimulator:
                 )
 
                 # Random delay
-                delay = random.uniform(*profile.delays.scroll)
+                scroll_delays = profile.delays.scroll
+                delay = random.uniform(scroll_delays[0], scroll_delays[1])
                 await page.wait_for_timeout(int(delay * 1000))
 
                 # Occasionally simulate mouse movement
@@ -187,12 +188,17 @@ class InteractionSimulator:
 
                 # Wait time based on pass type
                 wait_mult = 0.5 if final_pass else 1.0
-                delay = random.uniform(*profile.delays.scroll) * wait_mult
+                scroll_delays = profile.delays.scroll
+                delay = random.uniform(scroll_delays[0], scroll_delays[1]) * wait_mult
                 await page.wait_for_timeout(int(delay * 1000))
 
             # Scroll to bottom
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            delay = random.uniform(*profile.delays.reading) if not final_pass else 1.0
+            if not final_pass:
+                reading_delays = profile.delays.reading
+                delay = random.uniform(reading_delays[0], reading_delays[1])
+            else:
+                delay = 1.0
             await page.wait_for_timeout(int(delay * 1000))
 
             # Scroll back up gradually
@@ -201,7 +207,8 @@ class InteractionSimulator:
                 await page.evaluate(
                     f"window.scrollTo(0, document.body.scrollHeight * {scroll_ratio})"
                 )
-                delay = random.uniform(*profile.delays.scroll) * 0.5
+                scroll_delays = profile.delays.scroll
+                delay = random.uniform(scroll_delays[0], scroll_delays[1]) * 0.5
                 await page.wait_for_timeout(int(delay * 1000))
 
             # Return to top
@@ -233,7 +240,8 @@ class InteractionSimulator:
                     await element.scroll_into_view_if_needed()
 
                     # Reading delay
-                    delay = random.uniform(*profile.delays.reading)
+                    reading_delays = profile.delays.reading
+                    delay = random.uniform(reading_delays[0], reading_delays[1])
                     await page.wait_for_timeout(int(delay * 1000))
 
                     # Sometimes hover
@@ -262,7 +270,8 @@ class InteractionSimulator:
                 if await page.locator(selector).count() > 0:
                     element = page.locator(selector).first
                     await element.scroll_into_view_if_needed()
-                    delay = random.uniform(*profile.delays.reading) * 0.7
+                    reading_delays = profile.delays.reading
+                    delay = random.uniform(reading_delays[0], reading_delays[1]) * 0.7
                     await page.wait_for_timeout(int(delay * 1000))
             except Exception as e:
                 logger.debug(f"Job section interaction failed {selector}: {e}")
@@ -284,7 +293,8 @@ class InteractionSimulator:
                 if await page.locator(selector).count() > 0:
                     element = page.locator(selector).first
                     await element.scroll_into_view_if_needed()
-                    delay = random.uniform(*profile.delays.reading) * 0.8
+                    reading_delays = profile.delays.reading
+                    delay = random.uniform(reading_delays[0], reading_delays[1]) * 0.8
                     await page.wait_for_timeout(int(delay * 1000))
             except Exception as e:
                 logger.debug(f"Company section interaction failed {selector}: {e}")
@@ -320,7 +330,8 @@ class InteractionSimulator:
 
                     # Shorter delays for moderate interaction
                     mult = 0.5 if moderate else 1.0
-                    delay = random.uniform(*profile.delays.reading) * mult
+                    reading_delays = profile.delays.reading
+                    delay = random.uniform(reading_delays[0], reading_delays[1]) * mult
                     await page.wait_for_timeout(int(delay * 1000))
 
             except Exception as e:

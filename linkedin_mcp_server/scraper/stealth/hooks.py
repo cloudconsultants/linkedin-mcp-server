@@ -80,11 +80,12 @@ def stealth_controlled(
 
             try:
                 # Perform centralized stealth operation
+                targets = content_targets or []
                 await controller.scrape_linkedin_page(
                     page=page,
                     url=url,
                     page_type=page_type,
-                    content_targets=content_targets,
+                    content_targets=targets,
                 )
 
                 # Call original function (stealth already handled)

@@ -392,7 +392,15 @@ class PerformanceTelemetry:
                     if key in required_fields:
                         required_fields[key] = value
 
-                metrics = PerformanceMetrics(**required_fields)
+                metrics = PerformanceMetrics(
+                    timestamp=required_fields["timestamp"],
+                    url=required_fields["url"],
+                    profile_name=required_fields["profile_name"],
+                    duration=required_fields["duration"],
+                    success=required_fields["success"],
+                    page_type=required_fields["page_type"],
+                    error=required_fields["error"],
+                )
                 self.metrics_history.append(metrics)
                 self.profile_stats[metrics.profile_name].append(metrics)
 

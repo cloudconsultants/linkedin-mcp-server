@@ -91,7 +91,9 @@ class ProfilePageScraper(LinkedInPageScraper):
             person.linkedin_url = kwargs.get("url")
         else:
             try:
-                person.linkedin_url = page.url
+                # Convert string URL to HttpUrl type if needed
+                from pydantic import HttpUrl
+                person.linkedin_url = HttpUrl(page.url)
             except Exception:
                 pass
 
