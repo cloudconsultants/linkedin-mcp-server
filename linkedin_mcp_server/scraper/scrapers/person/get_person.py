@@ -47,9 +47,47 @@ class PersonScraper:
         Raises:
             LinkedInDetectionError: If LinkedIn detection is suspected
         """
+        import os
+
+        # Check if new stealth system should be used
+        use_new_stealth = os.getenv("USE_NEW_STEALTH", "false").lower() == "true"
+        
+        if use_new_stealth:
+            logger.info(f"Using NEW stealth system for profile scraping: {url}")
+            return await self._scrape_profile_new_system(url, fields)
+        else:
+            logger.info(f"Using LEGACY stealth system for profile scraping: {url}")
+            return await self._scrape_profile_legacy_system(url, fields)
+    
+    async def _scrape_profile_new_system(
+        self, url: str, fields: PersonScrapingFields
+    ) -> Person:
+        """Scrape profile using the new centralized stealth system."""
+        try:
+            from linkedin_mcp_server.scraper.pages.profile_page import ProfilePageScraper
+            
+            # Create profile page scraper with centralized stealth
+            profile_scraper = ProfilePageScraper()
+            
+            # Use the new unified scraping approach
+            return await profile_scraper.scrape_profile_page(
+                page=self.page,
+                url=url,
+                fields=fields
+            )
+            
+        except Exception as e:
+            logger.error(f"New stealth system failed: {e}")
+            logger.warning("Falling back to legacy system")
+            return await self._scrape_profile_legacy_system(url, fields)
+    
+    async def _scrape_profile_legacy_system(
+        self, url: str, fields: PersonScrapingFields
+    ) -> Person:
+        """Scrape profile using the original stealth approach."""
         # Validate URL
         linkedin_url = HttpUrl(url)
-        logger.info(f"Starting stealth profile scraping for: {url}")
+        logger.debug(f"Starting legacy profile scraping for: {url}")
 
         # Initialize Person model
         person = Person(linkedin_url=linkedin_url)
@@ -157,7 +195,7 @@ class PersonScraper:
                 "LinkedIn challenge detected"
             )
 
-        logger.info(f"Profile scraping completed for: {url}")
+        logger.debug(f"Legacy profile scraping completed for: {url}")
         return person
 
     async def _scrape_basic_info(self, person: Person) -> None:

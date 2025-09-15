@@ -11,11 +11,13 @@ Playwright automation for improved performance and reliability.
 """
 
 import logging
+import time
 from typing import Any, Dict, List
 
 from fastmcp import FastMCP
 
 from linkedin_mcp_server.error_handler import handle_tool_error
+from linkedin_mcp_server.scraper.config import get_stealth_environment_config
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
     Get a person's LinkedIn profile with basic information only (fast mode).
 
     This tool scrapes only essential profile data for quick lookups.
-    Performance target: <5 seconds.
+    Performance target: <5 seconds with new stealth system, <2 seconds with NO_STEALTH profile.
 
     Args:
         linkedin_username (str): LinkedIn username (e.g., "stickerdaniel", "anistji")
@@ -33,6 +35,9 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: Basic profile data including name, headline, location, about, and current company
     """
+    start_time = time.time()
+    stealth_config = get_stealth_environment_config()
+    
     try:
         from linkedin_mcp_server.scraper.config import PersonScrapingFields
         from linkedin_mcp_server.error_handler import safe_get_session
@@ -45,6 +50,10 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
 
         logger.info(f"Scraping minimal profile: {linkedin_url}")
 
+        # Log stealth system being used
+        stealth_system = "NEW (centralized)" if stealth_config["use_new_stealth"] else "LEGACY"
+        logger.info(f"Using {stealth_system} stealth system with {stealth_config['stealth_profile']} profile")
+
         # Use MINIMAL fields for fast scraping (~2-5 seconds)
         person = await session.get_profile(
             linkedin_url, fields=PersonScrapingFields.MINIMAL
@@ -53,8 +62,14 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
         # Convert Pydantic model to dict
         result = person.model_dump()
 
+        # Calculate performance metrics
+        duration = time.time() - start_time
+        
+        # Log performance
+        logger.info(f"Profile scraping completed in {duration:.1f}s using {stealth_system} system")
+
         # Transform to simplified format for minimal response
-        return {
+        response = {
             "name": result.get("name"),
             "headline": result.get("headline"),
             "location": result.get("location"),
@@ -65,7 +80,28 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
             ),  # Map headline to job_title for compatibility
             "open_to_work": result.get("open_to_work", False),
             "scraping_mode": "minimal",
+            "_performance": {
+                "duration_seconds": round(duration, 1),
+                "stealth_system": stealth_system,
+                "stealth_profile": stealth_config["stealth_profile"],
+            }
         }
+        
+        # Record telemetry if enabled
+        if stealth_config["stealth_telemetry"]:
+            try:
+                from linkedin_mcp_server.scraper.stealth.telemetry import PerformanceTelemetry
+                telemetry = PerformanceTelemetry()
+                await telemetry.record_success(
+                    url=linkedin_url,
+                    duration=duration,
+                    profile_name=stealth_config["stealth_profile"],
+                    page_type="profile"
+                )
+            except Exception as e:
+                logger.debug(f"Failed to record telemetry: {e}")
+        
+        return response
 
     except Exception as e:
         return handle_tool_error(e, "get_person_profile_minimal")
@@ -77,7 +113,11 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
 
     This tool scrapes complete profile information including experience, education,
     interests, accomplishments, and contacts. Maintains exact compatibility with
-    existing output format. Performance target: <35 seconds.
+    existing output format. 
+    
+    Performance targets:
+    - Legacy system: ~300 seconds (5 minutes)
+    - New stealth system: ~75 seconds with MINIMAL_STEALTH, ~50 seconds with NO_STEALTH
 
     Args:
         linkedin_username (str): LinkedIn username (e.g., "stickerdaniel", "anistji")
@@ -85,6 +125,9 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: Complete structured profile data matching testdata/testscrape.txt format
     """
+    start_time = time.time()
+    stealth_config = get_stealth_environment_config()
+    
     try:
         from linkedin_mcp_server.scraper.config import PersonScrapingFields
         from linkedin_mcp_server.error_handler import safe_get_session
@@ -95,9 +138,12 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
         # Get authenticated session
         session = await safe_get_session()
 
+        # Log stealth system being used
+        stealth_system = "NEW (centralized)" if stealth_config["use_new_stealth"] else "LEGACY"
         logger.info(f"Scraping comprehensive profile: {linkedin_url}")
+        logger.info(f"Using {stealth_system} stealth system with {stealth_config['stealth_profile']} profile")
 
-        # Use ALL fields for comprehensive scraping (~30 seconds)
+        # Use ALL fields for comprehensive scraping (~30 seconds legacy, ~75s new system)
         person = await session.get_profile(
             linkedin_url, fields=PersonScrapingFields.ALL
         )
@@ -171,8 +217,14 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
                 }
             )
 
+        # Calculate performance metrics
+        duration = time.time() - start_time
+        
+        # Log performance
+        logger.info(f"Comprehensive profile scraping completed in {duration:.1f}s using {stealth_system} system")
+
         # Return in exact testdata/testscrape.txt format
-        return {
+        response = {
             "name": result.get("name"),
             "about": result.get("about")
             if result.get("about")
@@ -187,7 +239,29 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
                 "headline"
             ),  # Map headline to job_title for compatibility
             "open_to_work": result.get("open_to_work", False),
+            "_performance": {
+                "duration_seconds": round(duration, 1),
+                "stealth_system": stealth_system,
+                "stealth_profile": stealth_config["stealth_profile"],
+                "scraping_mode": "comprehensive"
+            }
         }
+        
+        # Record telemetry if enabled
+        if stealth_config["stealth_telemetry"]:
+            try:
+                from linkedin_mcp_server.scraper.stealth.telemetry import PerformanceTelemetry
+                telemetry = PerformanceTelemetry()
+                await telemetry.record_success(
+                    url=linkedin_url,
+                    duration=duration,
+                    profile_name=stealth_config["stealth_profile"],
+                    page_type="profile"
+                )
+            except Exception as e:
+                logger.debug(f"Failed to record telemetry: {e}")
+        
+        return response
 
     except Exception as e:
         return handle_tool_error(e, "get_person_profile")
