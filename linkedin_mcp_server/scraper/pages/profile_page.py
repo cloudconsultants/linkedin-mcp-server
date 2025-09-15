@@ -93,6 +93,7 @@ class ProfilePageScraper(LinkedInPageScraper):
             try:
                 # Convert string URL to HttpUrl type if needed
                 from pydantic import HttpUrl
+
                 person.linkedin_url = HttpUrl(page.url)
             except Exception:
                 pass
@@ -312,12 +313,16 @@ class ProfilePageScraper(LinkedInPageScraper):
             # Extract experience items
             experience_items = []
             try:
-                experience_items = await experience_section.locator(EXPERIENCE_ITEMS).all()
+                experience_items = await experience_section.locator(
+                    EXPERIENCE_ITEMS
+                ).all()
             except Exception:
                 # Try fallback selectors
                 for alt_selector in EXPERIENCE_ITEMS_ALT:
                     try:
-                        experience_items = await experience_section.locator(alt_selector).all()
+                        experience_items = await experience_section.locator(
+                            alt_selector
+                        ).all()
                         if experience_items:
                             break
                     except Exception:
@@ -394,7 +399,9 @@ class ProfilePageScraper(LinkedInPageScraper):
                 # Try fallback selectors
                 for alt_selector in EDUCATION_ITEMS_ALT:
                     try:
-                        education_items = await education_section.locator(alt_selector).all()
+                        education_items = await education_section.locator(
+                            alt_selector
+                        ).all()
                         if education_items:
                             break
                     except Exception:
@@ -427,7 +434,7 @@ class ProfilePageScraper(LinkedInPageScraper):
                 "section:has-text('Awards')",
                 "section:has-text('Languages')",
                 "section:has-text('Skills')",
-                "section:has-text('Accomplishments')"
+                "section:has-text('Accomplishments')",
             ]
 
             for section_selector in accomplishment_sections:
@@ -444,7 +451,10 @@ class ProfilePageScraper(LinkedInPageScraper):
                                 text = await item.inner_text()
                                 if text and len(text.strip()) > 0:
                                     # Simple extraction - could be enhanced
-                                    if "honor" in section_selector.lower() or "award" in section_selector.lower():
+                                    if (
+                                        "honor" in section_selector.lower()
+                                        or "award" in section_selector.lower()
+                                    ):
                                         person.honors.append(text.strip())
                                     elif "language" in section_selector.lower():
                                         person.languages.append(text.strip())
@@ -471,7 +481,7 @@ class ProfilePageScraper(LinkedInPageScraper):
             interest_sections = [
                 "section:has-text('Interests')",
                 "section:has-text('Following')",
-                "section[data-view-name='profile-interests']"
+                "section[data-view-name='profile-interests']",
             ]
 
             for section_selector in interest_sections:
@@ -482,7 +492,9 @@ class ProfilePageScraper(LinkedInPageScraper):
                         await page.wait_for_timeout(500)
 
                         # Extract interest items
-                        items = await section.locator("li, .pvs-entity, .follow-item").all()
+                        items = await section.locator(
+                            "li, .pvs-entity, .follow-item"
+                        ).all()
                         for item in items:
                             try:
                                 text = await item.inner_text()
@@ -514,10 +526,11 @@ class ProfilePageScraper(LinkedInPageScraper):
                     text = await element.inner_text()
                     # Extract number from text like "500+ connections"
                     import re
-                    numbers = re.findall(r'\d+', text)
+
+                    numbers = re.findall(r"\d+", text)
                     if numbers:
                         # Store as string for now (could be enhanced)
-                        setattr(person, 'connections_count', text)
+                        setattr(person, "connections_count", text)
                         break
             except Exception:
                 pass
@@ -547,24 +560,25 @@ class ProfilePageScraper(LinkedInPageScraper):
                 return None
 
             # Simple text-based extraction (could be enhanced with more structured parsing)
-            lines = [line.strip() for line in text.split('\n') if line.strip()]
+            lines = [line.strip() for line in text.split("\n") if line.strip()]
             if not lines:
                 return None
 
             education = {
-                'school': lines[0] if lines else '',
-                'degree': lines[1] if len(lines) > 1 else '',
-                'field_of_study': lines[2] if len(lines) > 2 else '',
-                'description': '\n'.join(lines[3:]) if len(lines) > 3 else ''
+                "school": lines[0] if lines else "",
+                "degree": lines[1] if len(lines) > 1 else "",
+                "field_of_study": lines[2] if len(lines) > 2 else "",
+                "description": "\n".join(lines[3:]) if len(lines) > 3 else "",
             }
 
             # Try to extract dates
             import re
-            date_pattern = r'\b\d{4}\b'
+
+            date_pattern = r"\b\d{4}\b"
             dates = re.findall(date_pattern, text)
             if dates:
-                education['start_year'] = dates[0] if dates else None
-                education['end_year'] = dates[-1] if len(dates) > 1 else dates[0]
+                education["start_year"] = dates[0] if dates else None
+                education["end_year"] = dates[-1] if len(dates) > 1 else dates[0]
 
             return education
 
@@ -581,30 +595,33 @@ class ProfilePageScraper(LinkedInPageScraper):
                 return None
 
             # Simple text-based extraction (could be enhanced with more structured parsing)
-            lines = [line.strip() for line in text.split('\n') if line.strip()]
+            lines = [line.strip() for line in text.split("\n") if line.strip()]
             if not lines:
                 return None
 
             experience = {
-                'job_title': lines[0] if lines else '',
-                'company': lines[1] if len(lines) > 1 else '',
-                'location': '',
-                'description': '\n'.join(lines[2:]) if len(lines) > 2 else ''
+                "job_title": lines[0] if lines else "",
+                "company": lines[1] if len(lines) > 1 else "",
+                "location": "",
+                "description": "\n".join(lines[2:]) if len(lines) > 2 else "",
             }
 
             # Try to extract dates and location
             import re
-            date_pattern = r'\b\d{4}\b'
+
+            date_pattern = r"\b\d{4}\b"
             dates = re.findall(date_pattern, text)
             if dates:
-                experience['start_year'] = dates[0] if dates else None
-                experience['end_year'] = dates[-1] if len(dates) > 1 else dates[0]
+                experience["start_year"] = dates[0] if dates else None
+                experience["end_year"] = dates[-1] if len(dates) > 1 else dates[0]
 
             # Try to extract location (usually appears as "City, State" or "City, Country")
-            location_pattern = r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)'
+            location_pattern = (
+                r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)"
+            )
             location_match = re.search(location_pattern, text)
             if location_match:
-                experience['location'] = location_match.group(1)
+                experience["location"] = location_match.group(1)
 
             return experience
 
