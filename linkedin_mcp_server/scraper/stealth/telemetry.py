@@ -380,18 +380,18 @@ class PerformanceTelemetry:
                 required_fields = {
                     "timestamp": time.time(),
                     "url": "",
-                    "profile_name": "unknown", 
+                    "profile_name": "unknown",
                     "duration": 0.0,
                     "success": True,
                     "page_type": "profile",
-                    "error": None
+                    "error": None,
                 }
-                
+
                 # Update with actual data
                 for key, value in metrics_dict.items():
                     if key in required_fields:
                         required_fields[key] = value
-                
+
                 metrics = PerformanceMetrics(**required_fields)
                 self.metrics_history.append(metrics)
                 self.profile_stats[metrics.profile_name].append(metrics)

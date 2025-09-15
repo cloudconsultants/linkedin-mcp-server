@@ -51,36 +51,36 @@ class PersonScraper:
 
         # Check if new stealth system should be used
         use_new_stealth = os.getenv("USE_NEW_STEALTH", "false").lower() == "true"
-        
+
         if use_new_stealth:
             logger.info(f"Using NEW stealth system for profile scraping: {url}")
             return await self._scrape_profile_new_system(url, fields)
         else:
             logger.info(f"Using LEGACY stealth system for profile scraping: {url}")
             return await self._scrape_profile_legacy_system(url, fields)
-    
+
     async def _scrape_profile_new_system(
         self, url: str, fields: PersonScrapingFields
     ) -> Person:
         """Scrape profile using the new centralized stealth system."""
         try:
-            from linkedin_mcp_server.scraper.pages.profile_page import ProfilePageScraper
-            
+            from linkedin_mcp_server.scraper.pages.profile_page import (
+                ProfilePageScraper,
+            )
+
             # Create profile page scraper with centralized stealth
             profile_scraper = ProfilePageScraper()
-            
+
             # Use the new unified scraping approach
             return await profile_scraper.scrape_profile_page(
-                page=self.page,
-                url=url,
-                fields=fields
+                page=self.page, url=url, fields=fields
             )
-            
+
         except Exception as e:
             logger.error(f"New stealth system failed: {e}")
             logger.warning("Falling back to legacy system")
             return await self._scrape_profile_legacy_system(url, fields)
-    
+
     async def _scrape_profile_legacy_system(
         self, url: str, fields: PersonScrapingFields
     ) -> Person:
