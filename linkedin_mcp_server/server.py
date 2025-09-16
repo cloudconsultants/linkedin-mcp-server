@@ -50,12 +50,7 @@ def create_mcp_server() -> FastMCP:
 
 
 def shutdown_handler() -> None:
-    """Clean up resources on shutdown."""
-    # TODO: Add proper async cleanup for Playwright sessions
-    import asyncio
-    from linkedin_mcp_server.session.manager import PlaywrightSessionManager
-
-    try:
-        asyncio.run(PlaywrightSessionManager.close_all_sessions())
-    except Exception:
-        pass  # Ignore cleanup errors during shutdown
+    """Clean up resources on shutdown without asyncio conflicts."""
+    # No asyncio.run() calls to avoid event loop conflicts
+    # Session cleanup now handled within MCP server's event loop context
+    logger.info("LinkedIn MCP server shutdown handler completed")  # Ignore cleanup errors during shutdown

@@ -15,12 +15,6 @@ import sys
 from typing import Literal
 
 import inquirer  # type: ignore
-from linkedin_mcp_server.scraper.exceptions import (
-    InvalidCredentialsError,
-    LoginTimeoutError,
-    RateLimitError,
-    SecurityChallengeError,
-)
 
 from linkedin_mcp_server.cli import print_claude_config
 from linkedin_mcp_server.config import (
@@ -30,7 +24,7 @@ from linkedin_mcp_server.config import (
     get_keyring_name,
 )
 from linkedin_mcp_server.session.manager import PlaywrightSessionManager
-from linkedin_mcp_server.exceptions import CredentialsNotFoundError, LinkedInMCPError
+from linkedin_mcp_server.exceptions import CredentialsNotFoundError
 from linkedin_mcp_server.logging_config import configure_logging
 from linkedin_mcp_server.server import create_mcp_server, shutdown_handler
 from linkedin_mcp_server.setup import run_cookie_extraction_setup, run_interactive_setup
@@ -325,7 +319,7 @@ def main() -> None:
 
     # Phase 1: Ensure Authentication is Ready
     try:
-        authentication = ensure_authentication_ready()
+        ensure_authentication_ready()
         print("✅ Authentication ready")
         logger.info("Authentication ready")
     except CredentialsNotFoundError as e:
@@ -347,46 +341,8 @@ def main() -> None:
         print("\n❌ Setup failed - please try again")
         sys.exit(1)
 
-    # Phase 2: Initialize Playwright Session (if not lazy)
-    try:
-        import asyncio
-
-        asyncio.run(initialize_session_with_auth(authentication))
-    except InvalidCredentialsError as e:
-        logger.error(f"Session initialization failed with invalid credentials: {e}")
-
-        # Cookie was already cleared in session layer
-        # In interactive mode, try setup again
-        if config.is_interactive:
-            print(f"\n❌ {str(e)}")
-            print("🔄 Starting interactive setup for new authentication...")
-            try:
-                new_authentication = run_interactive_setup()
-                # Try again with new authentication
-                asyncio.run(initialize_session_with_auth(new_authentication))
-                logger.info("✅ Successfully authenticated with new credentials")
-            except Exception as setup_error:
-                logger.error(f"Setup failed: {setup_error}")
-                print(f"\n❌ Setup failed: {setup_error}")
-        else:
-            print(f"\n❌ {str(e)}")
-            if not config.server.lazy_init:
-                sys.exit(1)
-    except (
-        LinkedInMCPError,
-        SecurityChallengeError,
-        RateLimitError,
-        LoginTimeoutError,
-    ) as e:
-        logger.error(f"Session initialization failed: {e}")
-        print(f"\n❌ {str(e)}")
-        if not config.server.lazy_init:
-            sys.exit(1)
-    except Exception as e:
-        logger.error(f"Unexpected error during session initialization: {e}")
-        print(f"\n❌ Session initialization failed: {e}")
-        if not config.server.lazy_init:
-            sys.exit(1)
+    # Phase 2: Authentication validated - session will be created on-demand within MCP server
+    logger.info("✅ Authentication ready")
 
     # Phase 3: Server Runtime
     try:
@@ -408,7 +364,9 @@ def main() -> None:
             print_claude_config()
 
         # Create and run the MCP server
+        logger.debug("Creating MCP server...")
         mcp = create_mcp_server()
+        logger.debug("MCP server created successfully")
 
         # Start server
         print(f"\n\n🚀 Running LinkedIn MCP server ({transport.upper()} mode)...")
@@ -429,22 +387,29 @@ def main() -> None:
         print("\n⏹️  Server stopped by user")
         exit_gracefully(0)
     except Exception as e:
+        # Enhanced error logging for TaskGroup debugging
+        import traceback
+
+        error_details = traceback.format_exc()
         logger.error(f"Server runtime error: {e}")
+        logger.error(f"Full traceback: {error_details}")
+
+        # Check for TaskGroup specifically
+        if "TaskGroup" in str(e):
+            logger.error("TaskGroup error detected")
+            if hasattr(e, "__cause__") and e.__cause__:
+                logger.error(f"TaskGroup root cause: {e.__cause__}")
+
         print(f"\n\n❌ Server error: {e}")
         exit_gracefully(1)
 
 
 def exit_gracefully(exit_code: int = 0) -> None:
-    """Exit the application gracefully, cleaning up resources."""
+    """Exit the application gracefully, cleaning up resources without asyncio conflicts."""
     print("👋 Shutting down LinkedIn MCP server...")
 
-    # Clean up Playwright sessions
-    import asyncio
-
-    try:
-        asyncio.run(PlaywrightSessionManager.close_all_sessions())
-    except Exception as e:
-        logger.warning(f"Error closing sessions during shutdown: {e}")
+    # No asyncio.run() calls to avoid event loop conflicts
+    # Session cleanup handled within MCP server's event loop context
 
     # Clean up server
     shutdown_handler()
