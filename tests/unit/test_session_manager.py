@@ -5,9 +5,8 @@ Unit tests for PlaywrightSessionManager.
 Tests session creation, reuse, cleanup, and thread safety.
 """
 
-import asyncio
 import pytest
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 from linkedin_mcp_server.session.manager import PlaywrightSessionManager
 
@@ -42,7 +41,9 @@ class TestPlaywrightSessionManager:
             "valid_cookie_123", headless=True
         )
 
-    async def test_get_or_create_session_delegates_to_create(self, mock_linkedin_session_class):
+    async def test_get_or_create_session_delegates_to_create(
+        self, mock_linkedin_session_class
+    ):
         """Test that get_or_create_session delegates to create_session"""
         session = await PlaywrightSessionManager.get_or_create_session(
             "valid_cookie_123", headless=False
@@ -55,7 +56,9 @@ class TestPlaywrightSessionManager:
 
     async def test_session_creation_failure(self, mock_linkedin_session_class):
         """Test handling of session creation failures"""
-        mock_linkedin_session_class.from_cookie.side_effect = Exception("Creation failed")
+        mock_linkedin_session_class.from_cookie.side_effect = Exception(
+            "Creation failed"
+        )
 
         with pytest.raises(Exception, match="Creation failed"):
             await PlaywrightSessionManager.create_session("invalid_cookie")
