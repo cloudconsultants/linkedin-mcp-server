@@ -70,6 +70,8 @@ class Person(BaseModel):
     contact_info: Optional[ContactInfo] = None
     connections: List[Connection] = Field(default_factory=list)
     connection_count: Optional[int] = None  # Total number of connections
+    followers_count: Optional[int] = None  # Total number of followers
+    website_url: Optional[str] = None  # Personal/company website URL
     also_viewed_urls: List[HttpUrl] = Field(default_factory=list)
     company: Optional[str] = None
     job_title: Optional[str] = None
