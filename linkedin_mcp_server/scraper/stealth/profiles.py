@@ -65,7 +65,7 @@ class StealthProfile:
                 scroll=(0.1, 0.3),
             ),
             simulation=SimulationLevel.NONE,
-            lazy_loading=True,
+            lazy_loading=False,  # Disable for maximum speed
             telemetry=True,
             enable_fingerprint_masking=False,
             session_warming=False,

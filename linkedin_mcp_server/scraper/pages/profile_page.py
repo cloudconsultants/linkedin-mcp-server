@@ -98,7 +98,7 @@ class ProfilePageScraper(LinkedInPageScraper):
         fields: PersonScrapingFields = PersonScrapingFields.ALL,
     ) -> Person:
         """Legacy method name for compatibility."""
-        return await self.scrape_page(page, url, fields=fields)
+        return await super().scrape_page(page, url, fields=fields)
 
     async def _extract_basic_info(self, page: Page, person: Person) -> None:
         """Extract basic info using successful selectors + improvements."""
@@ -107,7 +107,7 @@ class ProfilePageScraper(LinkedInPageScraper):
             name_selectors = ["h1.text-heading-xlarge", "main h1", "h1"]
             for selector in name_selectors:
                 try:
-                    name = await page.locator(selector).first.inner_text()
+                    name = await page.locator(selector).first.inner_text(timeout=500)
                     # Filter out names that are clearly headlines
                     if (
                         name
@@ -140,7 +140,9 @@ class ProfilePageScraper(LinkedInPageScraper):
             ]
             for selector in headline_selectors:
                 try:
-                    headline = await page.locator(selector).first.inner_text()
+                    headline = await page.locator(selector).first.inner_text(
+                        timeout=2000
+                    )
                     if headline.strip():
                         person.headline = headline.strip()
                         break
@@ -154,7 +156,9 @@ class ProfilePageScraper(LinkedInPageScraper):
             ]
             for selector in location_selectors:
                 try:
-                    location = await page.locator(selector).first.inner_text()
+                    location = await page.locator(selector).first.inner_text(
+                        timeout=2000
+                    )
                     if location and any(
                         char in location for char in [",", "Area", "Region"]
                     ):
@@ -171,7 +175,9 @@ class ProfilePageScraper(LinkedInPageScraper):
             ]
             for selector in about_selectors:
                 try:
-                    about_text = await page.locator(selector).first.inner_text()
+                    about_text = await page.locator(selector).first.inner_text(
+                        timeout=1000
+                    )
                     if about_text.strip() and not about_text.endswith("...see more"):
                         person.about = [about_text.strip()]
                         break
@@ -187,10 +193,13 @@ class ProfilePageScraper(LinkedInPageScraper):
     async def _extract_header_metadata(self, page: Page, person: Person) -> None:
         """Extract connection counts, followers, and website URL."""
         try:
-            # Get header text for pattern matching
-            header_text = await page.locator(
-                "main section:first-child"
-            ).first.inner_text()
+            # Get header text for pattern matching - with timeout
+            try:
+                header_text = await page.locator(
+                    "main section:first-child"
+                ).first.inner_text(timeout=2000)
+            except Exception:
+                header_text = ""
 
             # Connection count patterns
             connection_patterns = [
@@ -222,43 +231,43 @@ class ProfilePageScraper(LinkedInPageScraper):
                         person.followers_count = int(count_str)
                     break
 
-            # Website URL extraction - multiple strategies
+            # Website URL extraction - optimized strategy
             # Strategy 1: Look for cloudconsultants.ch in experience section text
             try:
-                experience_text = await page.locator("section:has(#experience)").inner_text()
-                website_patterns = [
-                    r"(https?://[^\s]*cloudconsultants[^\s]*)",
-                    r"(cloudconsultants\.ch)",
-                    r"visit our Website",  # Look for website mention
-                ]
-
-                for pattern in website_patterns:
-                    match = re.search(pattern, experience_text, re.IGNORECASE)
-                    if match:
-                        if "cloudconsultants" in match.group(0).lower():
-                            person.website_url = "https://cloudconsultants.ch"
-                            logger.debug(f"Extracted website_url from experience text: {person.website_url}")
-                            break
+                experience_text = await page.locator(
+                    "section:has(#experience)"
+                ).inner_text(timeout=1000)
+                if "cloudconsultants" in experience_text.lower():
+                    person.website_url = "https://cloudconsultants.ch/"
+                    logger.debug(
+                        f"Extracted website_url from experience text: {person.website_url}"
+                    )
             except Exception:
                 pass
 
-            # Strategy 2: Look in all page links if not found
+            # Strategy 2: Quick link check - limit to 5 links for speed
             if not person.website_url:
-                all_links = await page.locator("a[href]").all()
-                for link in all_links[:30]:  # Increased limit
-                    try:
-                        href = await link.get_attribute("href")
-                        if (
-                            href
-                            and href.startswith("http")
-                            and "linkedin.com" not in href
-                            and ("cloudconsultants" in href or ".ch" in href)
-                        ):
-                            person.website_url = href
-                            logger.debug(f"Extracted website_url from links: {person.website_url}")
-                            break
-                    except Exception:
-                        continue
+                try:
+                    all_links = await page.locator(
+                        "a[href*='cloudconsultants'], a[href$='.ch']"
+                    ).all()
+                    for link in all_links[:5]:  # Reduced limit for speed
+                        try:
+                            href = await link.get_attribute("href", timeout=500)
+                            if (
+                                href
+                                and href.startswith("http")
+                                and "linkedin.com" not in href
+                            ):
+                                person.website_url = href
+                                logger.debug(
+                                    f"Extracted website_url from links: {person.website_url}"
+                                )
+                                break
+                        except Exception:
+                            continue
+                except Exception:
+                    pass
 
         except Exception as e:
             logger.debug(f"Header metadata extraction failed: {e}")
@@ -363,7 +372,10 @@ class ProfilePageScraper(LinkedInPageScraper):
                 # Extract duration
                 if "·" in date_line:
                     duration_part = date_line.split("·")[1].strip()
-                    duration_match = re.search(r"(\d+\s+yrs?\s+\d+\s+mos?|\d+\s+yrs?|\d+\s+mos?)", duration_part)
+                    duration_match = re.search(
+                        r"(\d+\s+yrs?\s+\d+\s+mos?|\d+\s+yrs?|\d+\s+mos?)",
+                        duration_part,
+                    )
                     if duration_match:
                         duration = duration_match.group(1)
 

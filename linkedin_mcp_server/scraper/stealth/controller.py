@@ -215,10 +215,14 @@ class StealthController:
         self, page: Page, targets: List[ContentTarget]
     ) -> List[ContentTarget]:
         """Ensure content is loaded using intelligent detection."""
-        # Will be implemented with LazyLoadDetector
         logger.debug(f"Loading content targets: {[t.value for t in targets]}")
 
-        # For now, return all targets as loaded
+        # Skip lazy loading if disabled in profile (e.g., NO_STEALTH)
+        if not self.profile.lazy_loading:
+            logger.debug("Lazy loading disabled - returning all targets as loaded")
+            return targets
+
+        # Use intelligent detection for profiles with lazy_loading enabled
         from linkedin_mcp_server.scraper.stealth.lazy_loading import LazyLoadDetector
 
         if not self.lazy_detector:
@@ -231,8 +235,12 @@ class StealthController:
 
     async def _simulate_page_interaction(self, page: Page, page_type: PageType) -> None:
         """Simulate human interaction based on configuration."""
-        # Will be implemented with InteractionSimulator
         logger.debug(f"Simulating {self.profile.simulation.value} interaction")
+
+        # Skip simulation if disabled (e.g., NO_STEALTH profile)
+        if self.profile.simulation.value == "none":
+            logger.debug("Simulation disabled - skipping interaction")
+            return
 
         from linkedin_mcp_server.scraper.stealth.simulation import InteractionSimulator
 

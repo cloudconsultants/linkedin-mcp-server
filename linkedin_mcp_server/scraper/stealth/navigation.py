@@ -83,7 +83,7 @@ class NavigationStrategy:
 
         try:
             # Simple direct navigation with configurable timeout
-            timeout = 30000 if profile.simulation.value != "none" else 15000
+            timeout = 30000 if profile.simulation.value != "none" else 5000
 
             await page.goto(
                 url,
