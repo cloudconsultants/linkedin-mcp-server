@@ -35,118 +35,47 @@ class TestPlaywrightSessionManager:
 
     async def test_session_creation_success(self, mock_linkedin_session_class):
         """Test successful session creation with valid cookie"""
-        # Clear any existing sessions
-        PlaywrightSessionManager._sessions.clear()
-
-        session = await PlaywrightSessionManager.get_or_create_session(
-            "valid_cookie_123"
-        )
+        session = await PlaywrightSessionManager.create_session("valid_cookie_123")
 
         assert session is not None
         mock_linkedin_session_class.from_cookie.assert_called_once_with(
             "valid_cookie_123", headless=True
         )
 
-    async def test_session_reuse(self, mock_linkedin_session_class):
-        """Test that same session is reused for multiple calls"""
-        PlaywrightSessionManager._sessions.clear()
+    async def test_get_or_create_session_delegates_to_create(self, mock_linkedin_session_class):
+        """Test that get_or_create_session delegates to create_session"""
+        session = await PlaywrightSessionManager.get_or_create_session(
+            "valid_cookie_123", headless=False
+        )
 
-        session1 = await PlaywrightSessionManager.get_or_create_session("same_cookie")
-        session2 = await PlaywrightSessionManager.get_or_create_session("same_cookie")
-
-        assert session1 is session2
-        # Should only create session once
-        assert mock_linkedin_session_class.from_cookie.call_count == 1
-
-    async def test_concurrent_session_creation(self, mock_linkedin_session_class):
-        """Test thread-safe concurrent session creation"""
-        PlaywrightSessionManager._sessions.clear()
-
-        # Simulate multiple concurrent calls
-        tasks = [
-            PlaywrightSessionManager.get_or_create_session("concurrent_cookie")
-            for _ in range(5)
-        ]
-
-        sessions = await asyncio.gather(*tasks)
-
-        # All should return same session instance
-        assert all(s is sessions[0] for s in sessions)
-        # Should only create session once despite concurrent calls
-        assert mock_linkedin_session_class.from_cookie.call_count == 1
-
-    async def test_session_cleanup(self, mock_linkedin_session_class, mock_session):
-        """Test proper session cleanup"""
-        PlaywrightSessionManager._sessions.clear()
-
-        await PlaywrightSessionManager.get_or_create_session("cleanup_test")
-        assert len(PlaywrightSessionManager._sessions) == 1
-
-        await PlaywrightSessionManager.close_all_sessions()
-
-        assert len(PlaywrightSessionManager._sessions) == 0
-        assert len(PlaywrightSessionManager._session_locks) == 0
-        mock_session.close.assert_called_once()
+        assert session is not None
+        mock_linkedin_session_class.from_cookie.assert_called_once_with(
+            "valid_cookie_123", headless=False
+        )
 
     async def test_session_creation_failure(self, mock_linkedin_session_class):
         """Test handling of session creation failures"""
-        PlaywrightSessionManager._sessions.clear()
-        mock_linkedin_session_class.from_cookie.side_effect = Exception(
-            "Creation failed"
-        )
+        mock_linkedin_session_class.from_cookie.side_effect = Exception("Creation failed")
 
         with pytest.raises(Exception, match="Creation failed"):
-            await PlaywrightSessionManager.get_or_create_session("invalid_cookie")
+            await PlaywrightSessionManager.create_session("invalid_cookie")
 
-        # Should not store failed session
-        assert len(PlaywrightSessionManager._sessions) == 0
-
-    async def test_invalid_session_recreation(
-        self, mock_linkedin_session_class, mock_session
-    ):
-        """Test recreation of invalid sessions"""
-        PlaywrightSessionManager._sessions.clear()
-
-        # Create initial session
-        await PlaywrightSessionManager.get_or_create_session("test_cookie")
-
-        # Mock session becoming invalid
-        mock_session.is_authenticated = AsyncMock(return_value=False)
-
-        # Should create new session
-        await PlaywrightSessionManager.get_or_create_session("test_cookie")
-
-        # Should have called from_cookie twice (initial + recreation)
-        assert mock_linkedin_session_class.from_cookie.call_count == 2
-        mock_session.close.assert_called_once()  # Old session should be closed
-
-    def test_has_active_session(self):
-        """Test session existence checking"""
-        PlaywrightSessionManager._sessions.clear()
-
+    def test_has_active_session_always_false(self):
+        """Test that has_active_session always returns False in simplified manager"""
         assert not PlaywrightSessionManager.has_active_session()
 
-        # Manually add session for testing
-        PlaywrightSessionManager._sessions["default"] = Mock()
-
-        assert PlaywrightSessionManager.has_active_session()
-
-        PlaywrightSessionManager._sessions.clear()
-
-    async def test_get_active_session(self):
-        """Test getting active session without creating new one"""
-        PlaywrightSessionManager._sessions.clear()
-
-        # Should return None when no session exists
+    async def test_get_active_session_always_none(self):
+        """Test that get_active_session always returns None in simplified manager"""
         session = await PlaywrightSessionManager.get_active_session()
         assert session is None
 
-        # Add session manually
-        mock_session = Mock()
-        PlaywrightSessionManager._sessions["default"] = mock_session
+    async def test_close_all_sessions_no_op(self):
+        """Test that close_all_sessions is a no-op in simplified manager"""
+        # Should not raise any exceptions
+        await PlaywrightSessionManager.close_all_sessions()
 
-        # Should return existing session
-        session = await PlaywrightSessionManager.get_active_session()
-        assert session is mock_session
-
-        PlaywrightSessionManager._sessions.clear()
+    def test_get_storage_state_path(self):
+        """Test storage state path generation"""
+        path = PlaywrightSessionManager._get_storage_state_path("test_session")
+        assert "session_test_session.json" in path
+        assert ".cache/linkedin-mcp-server" in path

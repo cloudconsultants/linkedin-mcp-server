@@ -25,9 +25,7 @@ class PersonScraper:
         """
         self.page = page
 
-    async def scrape_profile(
-        self, url: str, fields: PersonScrapingFields
-    ) -> Person:
+    async def scrape_profile(self, url: str, fields: PersonScrapingFields) -> Person:
         """Scrape a LinkedIn profile using A/B testing between new and legacy systems.
 
         Args:
@@ -81,7 +79,9 @@ class PersonScraper:
             )
             import os
 
-            logger.debug(f"Using unified ProfilePageScraper with legacy stealth profile for: {url}")
+            logger.debug(
+                f"Using unified ProfilePageScraper with legacy stealth profile for: {url}"
+            )
 
             # Set legacy stealth profile for backward compatibility
             original_profile = os.getenv("STEALTH_PROFILE")
