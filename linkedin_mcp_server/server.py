@@ -53,4 +53,6 @@ def shutdown_handler() -> None:
     """Clean up resources on shutdown without asyncio conflicts."""
     # No asyncio.run() calls to avoid event loop conflicts
     # Session cleanup now handled within MCP server's event loop context
-    logger.info("LinkedIn MCP server shutdown handler completed")  # Ignore cleanup errors during shutdown
+    logger.info(
+        "LinkedIn MCP server shutdown handler completed"
+    )  # Ignore cleanup errors during shutdown

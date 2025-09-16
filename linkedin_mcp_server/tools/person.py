@@ -12,12 +12,11 @@ Playwright automation for improved performance and reliability.
 
 import logging
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from fastmcp import FastMCP
 
 from linkedin_mcp_server.error_handler import handle_tool_error
-from linkedin_mcp_server.scraper.config import get_stealth_environment_config
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +58,16 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
         # Add LinkedIn cookie
         cookie = os.getenv("LINKEDIN_COOKIE")
         if cookie:
-            await context.add_cookies([
-                {
-                    "name": "li_at",
-                    "value": cookie,
-                    "domain": ".linkedin.com",
-                    "path": "/",
-                }
-            ])
+            await context.add_cookies(
+                [
+                    {
+                        "name": "li_at",
+                        "value": cookie,
+                        "domain": ".linkedin.com",
+                        "path": "/",
+                    }
+                ]
+            )
         else:
             raise ValueError("LINKEDIN_COOKIE environment variable not set")
 
@@ -81,14 +82,15 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
             await browser.close()
         except Exception as e:
             logger.debug(f"Browser close error (non-critical): {e}")
-        
+
         try:
             await playwright.stop()
         except Exception as e:
             logger.debug(f"Playwright stop error (non-critical): {e}")
-        
+
         # Small delay to allow background cleanup to complete
         import asyncio
+
         await asyncio.sleep(0.1)
 
         # Calculate timing
@@ -100,7 +102,7 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
             "duration_seconds": round(duration, 1),
             "stealth_system": "NEW (centralized)",
             "stealth_profile": "NO_STEALTH",
-            "scraping_mode": "minimal"
+            "scraping_mode": "minimal",
         }
         return result
 
@@ -150,14 +152,16 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
         # Add LinkedIn cookie
         cookie = os.getenv("LINKEDIN_COOKIE")
         if cookie:
-            await context.add_cookies([
-                {
-                    "name": "li_at",
-                    "value": cookie,
-                    "domain": ".linkedin.com",
-                    "path": "/",
-                }
-            ])
+            await context.add_cookies(
+                [
+                    {
+                        "name": "li_at",
+                        "value": cookie,
+                        "domain": ".linkedin.com",
+                        "path": "/",
+                    }
+                ]
+            )
         else:
             raise ValueError("LINKEDIN_COOKIE environment variable not set")
 
@@ -172,14 +176,15 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
             await browser.close()
         except Exception as e:
             logger.debug(f"Browser close error (non-critical): {e}")
-        
+
         try:
             await playwright.stop()
         except Exception as e:
             logger.debug(f"Playwright stop error (non-critical): {e}")
-        
+
         # Small delay to allow background cleanup to complete
         import asyncio
+
         await asyncio.sleep(0.1)
 
         # Calculate timing
@@ -191,7 +196,7 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
             "duration_seconds": round(duration, 1),
             "stealth_system": "NEW (centralized)",
             "stealth_profile": "NO_STEALTH",
-            "scraping_mode": "comprehensive"
+            "scraping_mode": "comprehensive",
         }
         return result
 

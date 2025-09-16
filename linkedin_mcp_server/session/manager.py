@@ -6,10 +6,9 @@ Provides persistent LinkedIn sessions across multiple tool calls with proper
 cleanup, thread-safe session creation, and authentication management.
 """
 
-import asyncio
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 from linkedin_mcp_server.scraper.session import LinkedInSession
 from linkedin_mcp_server.debug import get_debug_logger
@@ -74,7 +73,7 @@ class PlaywrightSessionManager:
     ) -> LinkedInSession:
         """
         Backward compatibility method - delegates to create_session.
-        
+
         Args:
             authentication: LinkedIn session cookie (li_at=value format)
             headless: Whether to run browser in headless mode
