@@ -1,7 +1,10 @@
 """Configuration settings for the LinkedIn scraper."""
 
+import os
 from dataclasses import dataclass
 from enum import Flag, auto
+from typing import Optional
+
 from patchright.async_api import ViewportSize
 from fake_useragent import UserAgent
 
@@ -22,6 +25,54 @@ class StealthConfig:
     rate_limit_per_minute: int = 1  # Maximum 1 profile per minute
     session_rotation_threshold: int = 5  # Rotate after 5 profiles
     stealth_wait_message: bool = True  # Inform user about delays
+
+    @classmethod
+    def from_stealth_profile(
+        cls, profile_name: Optional[str] = None
+    ) -> "StealthConfig":
+        """Create StealthConfig from new stealth profile system.
+
+        This method bridges between the new stealth profiles and legacy configuration,
+        enabling backward compatibility during the migration period.
+
+        Args:
+            profile_name: Name of stealth profile (NO_STEALTH, MINIMAL_STEALTH, etc.)
+
+        Returns:
+            StealthConfig instance configured from the stealth profile
+        """
+        try:
+            from linkedin_mcp_server.scraper.stealth.profiles import get_stealth_profile
+
+            stealth_profile = get_stealth_profile(profile_name)
+            return stealth_profile.to_legacy_config()
+        except ImportError:
+            # Fallback to default if stealth module not available
+            return cls()
+
+
+# Environment variable configuration for stealth system
+def get_stealth_environment_config() -> dict:
+    """Get stealth system configuration from environment variables.
+
+    Returns:
+        Dictionary with environment configuration for stealth system
+    """
+    return {
+        "stealth_profile": os.getenv("STEALTH_PROFILE", "MINIMAL_STEALTH"),
+        "use_new_stealth": os.getenv("USE_NEW_STEALTH", "false").lower() == "true",
+        "stealth_telemetry": os.getenv("STEALTH_TELEMETRY", "true").lower() == "true",
+        "stealth_config_path": os.getenv("STEALTH_CONFIG_PATH"),
+    }
+
+
+def is_new_stealth_enabled() -> bool:
+    """Check if the new centralized stealth system should be used.
+
+    Returns:
+        True if new stealth system is enabled via environment variable
+    """
+    return os.getenv("USE_NEW_STEALTH", "false").lower() == "true"
 
 
 class LinkedInDetectionError(Exception):
@@ -130,3 +181,42 @@ class PersonScrapingFields(Flag):
     ALL = (
         BASIC_INFO | EXPERIENCE | EDUCATION | INTERESTS | ACCOMPLISHMENTS | CONTACTS
     )  # Complete profile (~30s)
+
+
+def get_active_stealth_config() -> StealthConfig:
+    """Get the active stealth configuration.
+
+    This function automatically selects between legacy and new stealth systems
+    based on environment configuration.
+
+    Returns:
+        StealthConfig instance configured for current environment
+    """
+    env_config = get_stealth_environment_config()
+
+    if env_config["use_new_stealth"]:
+        # Use new stealth profile system
+        return StealthConfig.from_stealth_profile(env_config["stealth_profile"])
+    else:
+        # Use legacy default configuration
+        return StealthConfig()
+
+
+def log_stealth_configuration() -> None:
+    """Log current stealth configuration for debugging."""
+    import logging
+
+    logger = logging.getLogger(__name__)
+    env_config = get_stealth_environment_config()
+
+    logger.info("=== LinkedIn MCP Stealth Configuration ===")
+    logger.info(f"Stealth Profile: {env_config['stealth_profile']}")
+    logger.info(f"Use New Stealth: {env_config['use_new_stealth']}")
+    logger.info(f"Telemetry Enabled: {env_config['stealth_telemetry']}")
+
+    if env_config["use_new_stealth"]:
+        logger.info("Using centralized stealth architecture (new system)")
+    else:
+        logger.info("Using legacy stealth system")
+
+    logger.info("===========================================")

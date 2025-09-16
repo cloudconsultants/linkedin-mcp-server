@@ -22,4 +22,4 @@ Architecture:
 - Cross-platform compatibility (macOS, Windows, Linux)
 """
 
-__version__ = "1.0.0"
+__version__ = "1.6.0"

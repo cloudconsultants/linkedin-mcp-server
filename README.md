@@ -8,6 +8,13 @@
 
 Through this LinkedIn MCP server, AI assistants like Claude can connect to your LinkedIn. Give access to profiles and companies, get your recommended jobs, or search for keywords. All from a Docker container on your machine.
 
+## ⚡ Performance Highlights (v1.6.0)
+
+🚀 **79% Faster Profile Extraction** - Optimized from 48s to 10s with centralized stealth architecture
+🎯 **Configurable Performance Profiles** - Choose speed vs stealth based on your environment
+🏗️ **Unified Architecture** - Single StealthController for all anti-detection operations
+⚙️ **Smart Timeouts** - Intelligent selector optimization prevents 30s defaults
+
 ## Installation Methods
 
 [![Docker](https://img.shields.io/badge/Docker-Universal_MCP-008fe2?style=for-the-badge&logo=docker&logoColor=008fe2)](#-docker-setup-recommended---universal)
