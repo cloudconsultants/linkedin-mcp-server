@@ -11,14 +11,13 @@ import time
 
 # Load environment from .env file
 from dotenv import load_dotenv
+from linkedin_mcp_server.authentication import get_authentication
 
 load_dotenv()
 
 # Set NO_STEALTH environment
 os.environ["STEALTH_PROFILE"] = "NO_STEALTH"
 os.environ["LOG_LEVEL"] = "INFO"
-
-from linkedin_mcp_server.authentication import get_authentication
 
 
 async def test_fixes_with_authentication():
