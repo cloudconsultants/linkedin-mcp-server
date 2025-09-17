@@ -1,29 +1,98 @@
 # Aggressive Performance Optimization PRP
 
 ## Goal
-Transform LinkedIn MCP Server performance to achieve ultra-fast scraping with aggressive targets:
+Optimize LinkedIn MCP Server performance by significantly improving the existing NO_STEALTH profile and related stealth profiles to achieve aggressive performance targets while maintaining detection avoidance.
+
 - **NO_STEALTH**: 1-2 seconds (currently ~10s) - 80-90% improvement
-- **MINIMAL_STEALTH**: 10 seconds (currently 60-90s) - 85-90% improvement
-- **MAXIMUM_STEALTH**: 30 seconds (currently 250-350s) - 85-90% improvement
+- **MINIMAL_STEALTH**: 8-10 seconds (currently 60-90s) - 85-90% improvement
+- **MAXIMUM_STEALTH**: 25-30 seconds (currently 250-350s) - 85-90% improvement
 
 ## Why
 - **Business Value**: Dramatically improve user experience with near-instant profile extraction
 - **Competitive Advantage**: Fastest LinkedIn scraping solution in the market
 - **Resource Efficiency**: Reduce server load and enable higher throughput
 - **User Satisfaction**: Transform 5+ minute operations into sub-30 second workflows
+- **Integration with Existing Features**: Builds on v1.6.0 centralized stealth architecture
+- **Problems This Solves**: Eliminates hard-coded profile limitations and optimizes existing performance bottlenecks
 
 ## What
-Implement ultra-optimized stealth profiles and extraction strategies while maintaining reliability and detection avoidance. Create new performance tiers that push the boundaries of LinkedIn scraping speed.
+Optimize existing stealth profiles and extraction strategies through targeted improvements to the centralized stealth architecture. Focus on enhancing the current NO_STEALTH profile configuration rather than creating new profiles.
 
 ### Success Criteria
 - [ ] NO_STEALTH profile achieves consistent 1-2 second extraction times
-- [ ] MINIMAL_STEALTH profile achieves consistent 8-12 second extraction times
-- [ ] MAXIMUM_STEALTH profile achieves consistent 25-35 second extraction times
+- [ ] MINIMAL_STEALTH profile achieves consistent 8-10 second extraction times
+- [ ] MAXIMUM_STEALTH profile achieves consistent 25-30 second extraction times
+- [ ] Implement selective MCP tool profile strategy (minimal→NO_STEALTH, full→MINIMAL_STEALTH)
+- [ ] Create separate DOM analysis tools for iterative development (not in production code)
 - [ ] All existing functionality remains intact with backward compatibility
 - [ ] Detection rates remain at or below current levels
 - [ ] Performance improvements validated across multiple test profiles
 
 ## All Needed Context
+
+### Documentation & References
+```yaml
+# MUST READ - Include these in your context window
+- file: RELEASE_NOTES.md
+  why: v1.6.0 centralized stealth architecture details and 79% performance improvements achieved
+  critical: Understanding of current StealthController phase-based processing system
+- file: STEALTH_PROFILE_README.md
+  why: Current hard-coded profile configurations in MCP tools that prevent dynamic configuration
+  critical: MCP tools ignore environment variables due to hard-coding in person.py lines 49 & 143
+- file: RESILIENT_SETUP.md
+  why: BrokenPipeError handling patterns and resilient setup requirements
+  critical: Auto-restart mechanisms needed for stable operation
+- file: linkedin_mcp_server/scraper/stealth/profiles.py
+  why: Current profile configurations and delay settings
+  critical: DelayConfig parameters that need optimization for performance targets
+- file: linkedin_mcp_server/scraper/stealth/controller.py
+  why: Centralized stealth architecture implementation
+  critical: 4-phase scraping process (Navigation → Content Loading → Simulation → Extraction)
+- file: linkedin_mcp_server/tools/person.py
+  why: Hard-coded profile configurations in MCP tools
+  critical: Lines 49 & 143 contain hard-coded NO_STEALTH that bypasses environment configuration
+```
+
+### Current Codebase Structure
+```bash
+linkedin-mcp-server/
+├── linkedin_mcp_server/
+│   ├── scraper/
+│   │   ├── stealth/
+│   │   │   ├── controller.py      # Central stealth orchestrator
+│   │   │   ├── profiles.py        # Profile configurations (TARGET)
+│   │   │   ├── navigation.py      # Navigation timing optimization
+│   │   │   └── lazy_loading.py    # Content loading optimization
+│   │   └── pages/
+│   │       └── profile_page.py    # DOM extraction optimization
+│   └── tools/
+│       └── person.py              # MCP tools with selective profiles (TARGET)
+├── tests/performance_validation/  # Existing performance test suite
+└── PRPs/aggressive-performance-optimization.md
+```
+
+### Desired Codebase Structure (After Implementation)
+```bash
+linkedin-mcp-server/
+├── linkedin_mcp_server/
+│   ├── scraper/
+│   │   ├── analysis/               # NEW: Development tools
+│   │   │   └── dom_analyzer.py     # DOM analysis for iterative development
+│   │   ├── stealth/
+│   │   │   ├── controller.py      # Enhanced stealth orchestrator
+│   │   │   ├── profiles.py        # Optimized profile configurations
+│   │   │   ├── navigation.py      # Optimized navigation timing
+│   │   │   └── lazy_loading.py    # Optimized content loading
+│   │   └── pages/
+│   │       └── profile_page.py    # Speed-first selector strategy
+│   └── tools/
+│       └── person.py              # Selective MCP tool profiles
+├── tests/
+│   ├── performance/               # NEW: Unit performance tests
+│   │   └── test_aggressive_optimization.py
+│   └── performance_validation/    # Existing integration tests
+└── PRPs/aggressive-performance-optimization.md
+```
 
 ### Current Performance Baseline (v1.6.0)
 
@@ -142,10 +211,19 @@ From test data analysis (`drihs_no_stealth_1757974104.json`):
 #### LinkedIn Anti-Bot Patterns
 ```python
 # CRITICAL: LinkedIn detection patterns to avoid
-- Requests faster than 100ms apart trigger rate limiting
-- Zero delays on scroll actions flag as bot behavior
-- Missing User-Agent rotation increases detection risk
-- Direct navigation without session warming can trigger challenges
+# Requests faster than 100ms apart trigger rate limiting
+# Zero delays on scroll actions flag as bot behavior
+# Missing User-Agent rotation increases detection risk
+# Direct navigation without session warming can trigger challenges
+```
+
+#### MCP Tools Profile Strategy (Architectural Design)
+```python
+# STRATEGIC: MCP tools use optimized hard-coded profiles based on extraction needs
+# File: linkedin_mcp_server/tools/person.py (lines 49 & 143)
+# get_person_profile_minimal() → NO_STEALTH (doesn't break session, safe for speed)
+# get_person_profile() → MINIMAL_STEALTH (requires navigation, needs more stealth)
+# This selective approach balances performance with session protection
 ```
 
 #### Patchright/Browser Limitations
@@ -156,52 +234,74 @@ From test data analysis (`drihs_no_stealth_1757974104.json`):
 # Content loading detection requires minimum 100ms per check
 ```
 
-#### Architecture Constraints
+#### Architecture Constraints (v1.6.0 Centralized Stealth)
 ```python
 # Current centralized architecture strengths:
-+ Single configuration point for all timing adjustments
-+ Graceful degradation when optimizations fail
-+ Comprehensive telemetry for performance monitoring
+# + Single configuration point for all timing adjustments
+# + Graceful degradation when optimizations fail
+# + Comprehensive telemetry for performance monitoring
+# + 79% performance improvement already achieved (48s → 10s)
 
 # Optimization limitations:
-- Cannot eliminate network latency (LinkedIn servers)
-- Must maintain minimum delays to avoid detection
-- DOM extraction speed limited by LinkedIn page complexity
+# - Cannot eliminate network latency (LinkedIn servers)
+# - Must maintain minimum delays to avoid detection
+# - DOM extraction speed limited by LinkedIn page complexity
+# - BrokenPipeError handling requires resilient setup considerations
 ```
 
 ## Implementation Blueprint
 
-### Phase 1: Ultra-Fast NO_STEALTH Profile (Target: 1-2s)
+### Phase 1: Optimize Existing NO_STEALTH Profile (Target: 1-2s)
 
-#### Task 1: Create ULTRA_FAST_NO_STEALTH Profile
+#### Task 1: Implement Selective MCP Tool Profile Strategy
+**MODIFY** `linkedin_mcp_server/tools/person.py`:
+
+```python
+# STRATEGIC hard-coded profiles based on extraction requirements:
+
+# get_person_profile_minimal() - Line 49
+os.environ["STEALTH_PROFILE"] = "NO_STEALTH"      # Safe: doesn't break session
+os.environ["USE_NEW_STEALTH"] = "true"
+
+# get_person_profile() - Line 143
+os.environ["STEALTH_PROFILE"] = "MINIMAL_STEALTH"  # Navigation required: needs stealth
+os.environ["USE_NEW_STEALTH"] = "true"
+
+# This selective approach:
+# - Maximizes speed for minimal extraction (NO_STEALTH)
+# - Protects session for full extraction (MINIMAL_STEALTH)
+# - Prevents session breaking from aggressive speed optimization
+```
+
+#### Task 2: Optimize Existing NO_STEALTH Profile Configuration
 **MODIFY** `linkedin_mcp_server/scraper/stealth/profiles.py`:
 
 ```python
 @classmethod
-def ULTRA_FAST_NO_STEALTH(cls) -> "StealthProfile":
-    """Ultra-fast profile optimized for sub-2s extraction."""
+def NO_STEALTH(cls) -> "StealthProfile":
+    """Optimized NO_STEALTH profile for sub-2s extraction."""
     return cls(
-        name="ULTRA_FAST_NO_STEALTH",
+        name="NO_STEALTH",
         navigation=NavigationMode.DIRECT,
         delays=DelayConfig(
-            base=(0.0, 0.05),        # Minimal delays only
-            reading=(0.0, 0.1),      # Almost instant reading
-            navigation=(0.0, 0.05),  # Fastest navigation
-            typing=(0.0, 0.01),      # Minimal typing simulation
-            scroll=(0.0, 0.05),      # Fastest scrolling
+            base=(0.0, 0.05),        # Reduced from (0.1, 0.3)
+            reading=(0.0, 0.1),      # Reduced from (0.2, 0.5)
+            navigation=(0.0, 0.05),  # Reduced from (0.1, 0.3)
+            typing=(0.0, 0.01),      # Reduced from (0.01, 0.03)
+            scroll=(0.0, 0.05),      # Reduced from (0.1, 0.3)
         ),
-        simulation=SimulationLevel.NONE,
-        lazy_loading=False,
+        simulation=SimulationLevel.NONE,   # Already optimized
+        lazy_loading=False,                # Already optimized
         telemetry=True,
-        enable_fingerprint_masking=False,  # Disable for speed
-        session_warming=False,             # Skip warming
+        enable_fingerprint_masking=False,  # Disable for maximum speed
+        session_warming=False,             # Skip warming for speed
         max_concurrent_profiles=10,        # Higher concurrency
         rate_limit_per_minute=30,          # Aggressive rate limit
         session_rotation_threshold=50,     # Less frequent rotation
     )
 ```
 
-#### Task 2: Optimize Navigation Timeouts
+#### Task 3: Optimize Navigation Timeouts
 **MODIFY** `linkedin_mcp_server/scraper/stealth/navigation.py`:
 
 ```python
@@ -210,13 +310,11 @@ async def _navigate_direct(self, page: Page, url: str, profile: StealthProfile) 
     logger.debug(f"Direct navigation to: {url}")
 
     try:
-        # Ultra-fast timeout for speed-optimized profiles
-        if profile.name == "ULTRA_FAST_NO_STEALTH":
-            timeout = 1000  # 1 second maximum
-        elif profile.simulation.value == "none":
-            timeout = 2000  # 2 seconds for NO_STEALTH
+        # Ultra-fast timeout for optimized NO_STEALTH profile
+        if profile.simulation.value == "none":
+            timeout = 1000  # 1 second maximum for NO_STEALTH
         else:
-            timeout = 5000  # Standard timeout
+            timeout = 5000  # Standard timeout for other profiles
 
         await page.goto(
             url,
@@ -224,14 +322,14 @@ async def _navigate_direct(self, page: Page, url: str, profile: StealthProfile) 
             timeout=timeout,
         )
 
-        # Skip delays for ultra-fast profiles
-        if profile.name != "ULTRA_FAST_NO_STEALTH" and profile.simulation.value != "none":
+        # Skip delays for optimized NO_STEALTH profile
+        if profile.simulation.value != "none":
             nav_delays = profile.delays.navigation
             delay = random.uniform(nav_delays[0], nav_delays[1])
             await page.wait_for_timeout(int(delay * 1000))
 ```
 
-#### Task 3: Bypass Content Loading Detection
+#### Task 4: Bypass Content Loading Detection
 **MODIFY** `linkedin_mcp_server/scraper/stealth/controller.py`:
 
 ```python
@@ -241,7 +339,7 @@ async def _ensure_content_loaded(self, page: Page, targets: List[ContentTarget])
 
     # TRUE bypass for speed-optimized profiles
     if (not self.profile.lazy_loading or
-        self.profile.name in ["ULTRA_FAST_NO_STEALTH", "NO_STEALTH"]):
+        self.profile.name == "NO_STEALTH"):
         logger.debug("Content loading bypassed for speed optimization")
         return targets
 
@@ -256,13 +354,13 @@ async def _ensure_content_loaded(self, page: Page, targets: List[ContentTarget])
 
 ### Phase 2: Optimized Profile Configurations
 
-#### Task 4: Update MINIMAL_STEALTH for 10s Target
+#### Task 5: Update MINIMAL_STEALTH for 8-10s Target
 **MODIFY** `linkedin_mcp_server/scraper/stealth/profiles.py`:
 
 ```python
 @classmethod
 def MINIMAL_STEALTH(cls) -> "StealthProfile":
-    """Optimized balanced profile for 8-12s extraction."""
+    """Optimized balanced profile for 8-10s extraction."""
     return cls(
         name="MINIMAL_STEALTH",
         navigation=NavigationMode.DIRECT,
@@ -281,13 +379,13 @@ def MINIMAL_STEALTH(cls) -> "StealthProfile":
     )
 ```
 
-#### Task 5: Redesign MAXIMUM_STEALTH for 30s Target
+#### Task 6: Redesign MAXIMUM_STEALTH for 25-30s Target
 **MODIFY** `linkedin_mcp_server/scraper/stealth/profiles.py`:
 
 ```python
 @classmethod
 def MAXIMUM_STEALTH(cls) -> "StealthProfile":
-    """Optimized maximum stealth for 25-35s extraction."""
+    """Optimized maximum stealth for 25-30s extraction."""
     return cls(
         name="MAXIMUM_STEALTH",
         navigation=NavigationMode.DIRECT,  # CRITICAL: Switch from SEARCH_FIRST
@@ -307,7 +405,84 @@ def MAXIMUM_STEALTH(cls) -> "StealthProfile":
 
 ### Phase 3: DOM Extraction Optimization
 
-#### Task 6: Implement Speed-First Selector Strategy
+#### Task 7: Create Separate DOM Analysis Tools (Development Only)
+**CREATE NEW DIRECTORY AND FILE** `linkedin_mcp_server/scraper/analysis/dom_analyzer.py`:
+
+```python
+"""
+Separate DOM analysis tools for iterative development.
+NOT FOR PRODUCTION - Development and testing only.
+"""
+
+class DOMAnalyzer:
+    """Development tool for analyzing LinkedIn page DOM structure."""
+
+    def __init__(self, page: Page):
+        self.page = page
+        self.analysis_results = {}
+
+    async def analyze_profile_selectors(self) -> Dict[str, List[str]]:
+        """Analyze and rank selectors by reliability and speed."""
+        selectors = {
+            'name': await self._test_selectors([
+                'h1.text-heading-xlarge',
+                '.pv-text-details__left-panel h1',
+                '.ph5.pb5 h1',
+            ]),
+            'headline': await self._test_selectors([
+                '.text-body-medium.break-words',
+                '.pv-text-details__left-panel .text-body-medium',
+                '.ph5 .text-body-medium',
+            ])
+        }
+        return selectors
+
+    async def _test_selectors(self, candidates: List[str]) -> List[Dict]:
+        """Test selector candidates and return performance metrics."""
+        results = []
+        for selector in candidates:
+            start_time = time.time()
+            try:
+                element = self.page.locator(selector).first
+                count = await element.count()
+                text = await element.text_content() if count > 0 else None
+                duration = time.time() - start_time
+
+                results.append({
+                    'selector': selector,
+                    'found': count > 0,
+                    'text_length': len(text) if text else 0,
+                    'duration_ms': duration * 1000,
+                    'sample_text': text[:50] if text else None
+                })
+            except Exception as e:
+                results.append({
+                    'selector': selector,
+                    'found': False,
+                    'error': str(e),
+                    'duration_ms': (time.time() - start_time) * 1000
+                })
+        return results
+
+    def generate_optimized_selectors(self) -> Dict[str, List[str]]:
+        """Generate optimized selector hierarchy from analysis."""
+        # Analysis logic here - separate from production code
+        pass
+```
+
+**Usage for development**:
+```python
+# DEVELOPMENT ONLY - not in production scrapers
+from linkedin_mcp_server.scraper.analysis.dom_analyzer import DOMAnalyzer
+
+async def analyze_page_structure(page: Page):
+    analyzer = DOMAnalyzer(page)
+    results = await analyzer.analyze_profile_selectors()
+    optimized = analyzer.generate_optimized_selectors()
+    return results, optimized
+```
+
+#### Task 8: Implement Speed-First Selector Strategy (Production)
 **MODIFY** `linkedin_mcp_server/scraper/pages/profile_page.py`:
 
 ```python
@@ -349,7 +524,7 @@ class ProfilePageScraper(LinkedInPageScraper):
                     continue
 ```
 
-#### Task 7: Fix Experience Field Mapping
+#### Task 9: Fix Experience Field Mapping (Production)
 **MODIFY** `linkedin_mcp_server/scraper/pages/profile_page.py`:
 
 ```python
@@ -446,8 +621,8 @@ def _parse_date_range_optimized(self, date_text: str) -> Tuple[Optional[str], Op
 
 ### Phase 4: Performance Monitoring Framework
 
-#### Task 8: Enhanced Performance Telemetry
-**CREATE** `linkedin_mcp_server/scraper/stealth/performance_monitor.py`:
+#### Task 10: Enhanced Performance Telemetry
+**CREATE NEW FILE** `linkedin_mcp_server/scraper/stealth/performance_monitor.py`:
 
 ```python
 """Advanced performance monitoring for aggressive optimization validation."""
@@ -485,10 +660,9 @@ class PerformanceMonitor:
     def __init__(self):
         self.metrics: List[ExtractionMetrics] = []
         self.performance_targets = {
-            "ULTRA_FAST_NO_STEALTH": 2.0,
-            "NO_STEALTH": 3.0,
-            "MINIMAL_STEALTH": 12.0,
-            "MAXIMUM_STEALTH": 35.0,
+            "NO_STEALTH": 2.0,
+            "MINIMAL_STEALTH": 10.0,
+            "MAXIMUM_STEALTH": 30.0,
         }
 
     def record_extraction(self, metrics: ExtractionMetrics) -> None:
@@ -526,8 +700,8 @@ class PerformanceMonitor:
         return summary
 ```
 
-#### Task 9: Optimization Validation Tests
-**CREATE** `tests/performance/test_aggressive_optimization.py`:
+#### Task 11: Optimization Validation Tests
+**CREATE NEW DIRECTORY AND FILE** `tests/performance/test_aggressive_optimization.py`:
 
 ```python
 """Validation tests for aggressive performance optimization."""
@@ -541,9 +715,9 @@ class TestAggressiveOptimization:
     """Validate aggressive performance targets."""
 
     @pytest.mark.asyncio
-    async def test_ultra_fast_no_stealth_target(self):
-        """ULTRA_FAST_NO_STEALTH should complete in under 2 seconds."""
-        profile = StealthProfile.ULTRA_FAST_NO_STEALTH()
+    async def test_optimized_no_stealth_target(self):
+        """Optimized NO_STEALTH should complete in under 2 seconds."""
+        profile = StealthProfile.NO_STEALTH()
         controller = StealthController(profile=profile)
 
         # Mock page setup
@@ -560,11 +734,11 @@ class TestAggressiveOptimization:
         duration = time.time() - start_time
 
         assert result.success
-        assert duration < 2.0, f"Ultra-fast extraction took {duration:.2f}s, target: <2.0s"
+        assert duration < 2.0, f"Optimized NO_STEALTH took {duration:.2f}s, target: <2.0s"
 
     @pytest.mark.asyncio
     async def test_minimal_stealth_optimization_target(self):
-        """Optimized MINIMAL_STEALTH should complete in under 12 seconds."""
+        """Optimized MINIMAL_STEALTH should complete in under 10 seconds."""
         profile = StealthProfile.MINIMAL_STEALTH()
         controller = StealthController(profile=profile)
 
@@ -581,11 +755,11 @@ class TestAggressiveOptimization:
         duration = time.time() - start_time
 
         assert result.success
-        assert duration < 12.0, f"Minimal stealth took {duration:.2f}s, target: <12.0s"
+        assert duration < 10.0, f"Minimal stealth took {duration:.2f}s, target: <10.0s"
 
     @pytest.mark.asyncio
     async def test_maximum_stealth_optimization_target(self):
-        """Optimized MAXIMUM_STEALTH should complete in under 35 seconds."""
+        """Optimized MAXIMUM_STEALTH should complete in under 30 seconds."""
         profile = StealthProfile.MAXIMUM_STEALTH()
         controller = StealthController(profile=profile)
 
@@ -602,7 +776,7 @@ class TestAggressiveOptimization:
         duration = time.time() - start_time
 
         assert result.success
-        assert duration < 35.0, f"Maximum stealth took {duration:.2f}s, target: <35.0s"
+        assert duration < 30.0, f"Maximum stealth took {duration:.2f}s, target: <30.0s"
 
     def test_field_mapping_accuracy(self):
         """Validate correct field mapping in optimized extraction."""
@@ -632,7 +806,7 @@ class TestAggressiveOptimization:
 
 ### Phase 5: Integration & Deployment
 
-#### Task 10: Environment Configuration
+#### Task 12: Environment Configuration
 **MODIFY** `linkedin_mcp_server/scraper/stealth/profiles.py`:
 
 ```python
@@ -641,9 +815,8 @@ def get_stealth_profile(profile_name: Optional[str] = None, config_path: Optiona
     if profile_name is None:
         profile_name = os.getenv("STEALTH_PROFILE", "MINIMAL_STEALTH")
 
-    # Extended profile map with optimization profiles
+    # Existing profile map (no changes needed)
     profile_map = {
-        "ULTRA_FAST_NO_STEALTH": StealthProfile.ULTRA_FAST_NO_STEALTH,
         "NO_STEALTH": StealthProfile.NO_STEALTH,
         "MINIMAL_STEALTH": StealthProfile.MINIMAL_STEALTH,
         "MODERATE_STEALTH": StealthProfile.MODERATE_STEALTH,
@@ -658,7 +831,7 @@ def get_stealth_profile(profile_name: Optional[str] = None, config_path: Optiona
     return profile_map[profile_name]()
 ```
 
-#### Task 11: Graceful Degradation Framework
+#### Task 13: Graceful Degradation Framework
 **MODIFY** `linkedin_mcp_server/scraper/stealth/controller.py`:
 
 ```python
@@ -673,9 +846,9 @@ async def scrape_linkedin_page(self, page: Page, url: str, page_type: PageType, 
         try:
             await self._navigate_to_page(page, url, page_type)
         except Exception as e:
-            if self.profile.name == "ULTRA_FAST_NO_STEALTH":
-                logger.warning("Ultra-fast navigation failed, falling back to standard")
-                fallback_profile = StealthProfile.NO_STEALTH()
+            if self.profile.name == "NO_STEALTH":
+                logger.warning("Optimized NO_STEALTH navigation failed, falling back to MINIMAL_STEALTH")
+                fallback_profile = StealthProfile.MINIMAL_STEALTH()
                 fallback_controller = StealthController(profile=fallback_profile)
                 return await fallback_controller.scrape_linkedin_page(page, url, page_type, content_targets)
             raise
@@ -684,7 +857,7 @@ async def scrape_linkedin_page(self, page: Page, url: str, page_type: PageType, 
         try:
             loaded_targets = await asyncio.wait_for(
                 self._ensure_content_loaded(page, content_targets),
-                timeout=30.0 if self.profile.name != "ULTRA_FAST_NO_STEALTH" else 5.0
+                timeout=5.0 if self.profile.name == "NO_STEALTH" else 30.0
             )
         except asyncio.TimeoutError:
             logger.warning(f"Content loading timeout for {self.profile.name}")
@@ -719,10 +892,10 @@ async def scrape_linkedin_page(self, page: Page, url: str, page_type: PageType, 
         logger.error(f"Scraping failed after {duration:.1f}s: {e}")
 
         # Attempt graceful degradation for optimization profiles
-        if self.profile.name == "ULTRA_FAST_NO_STEALTH":
-            logger.info("Attempting graceful degradation to NO_STEALTH")
+        if self.profile.name == "NO_STEALTH":
+            logger.info("Attempting graceful degradation to MINIMAL_STEALTH")
             try:
-                fallback_profile = StealthProfile.NO_STEALTH()
+                fallback_profile = StealthProfile.MINIMAL_STEALTH()
                 fallback_controller = StealthController(profile=fallback_profile)
                 return await fallback_controller.scrape_linkedin_page(page, url, page_type, content_targets)
             except Exception as fallback_error:
@@ -745,7 +918,7 @@ async def scrape_linkedin_page(self, page: Page, url: str, page_type: PageType, 
 ```bash
 # Run these FIRST - fix any errors before proceeding
 uv run ruff check linkedin_mcp_server/scraper/stealth/ --fix
-uv run ruff check tests/performance/ --fix
+uv run ruff check tests/performance/ --fix  # New directory
 uv run mypy linkedin_mcp_server/scraper/stealth/
 # Expected: No errors. If errors, READ the error and fix.
 ```
@@ -763,14 +936,14 @@ uv run pytest tests/integration/test_stealth_performance_fix.py -v
 ### Level 3: Integration Test
 ```bash
 # Test real-world performance with drihs profile
-STEALTH_PROFILE=ULTRA_FAST_NO_STEALTH uv run python validate_fixes.py
+STEALTH_PROFILE=NO_STEALTH uv run python validate_fixes.py
 STEALTH_PROFILE=MINIMAL_STEALTH uv run python validate_fixes.py
 STEALTH_PROFILE=MAXIMUM_STEALTH uv run python validate_fixes.py
 
 # Expected extraction times:
-# ULTRA_FAST_NO_STEALTH: <2s
-# MINIMAL_STEALTH: <12s
-# MAXIMUM_STEALTH: <35s
+# NO_STEALTH: <2s
+# MINIMAL_STEALTH: <10s
+# MAXIMUM_STEALTH: <30s
 ```
 
 ### Level 4: Performance Validation
@@ -787,9 +960,9 @@ uv run python test_improved_extraction.py
 - [ ] All tests pass: `uv run pytest tests/ -v`
 - [ ] No linting errors: `uv run ruff check linkedin_mcp_server/`
 - [ ] No type errors: `uv run mypy linkedin_mcp_server/`
-- [ ] ULTRA_FAST_NO_STEALTH achieves <2s consistently
-- [ ] MINIMAL_STEALTH achieves <12s consistently
-- [ ] MAXIMUM_STEALTH achieves <35s consistently
+- [ ] NO_STEALTH achieves <2s consistently
+- [ ] MINIMAL_STEALTH achieves <10s consistently
+- [ ] MAXIMUM_STEALTH achieves <30s consistently
 - [ ] Field mapping accuracy maintained (no regression)
 - [ ] Detection rates remain stable
 - [ ] Graceful degradation works under failure conditions
@@ -809,7 +982,7 @@ uv run python test_improved_extraction.py
 ### Performance vs Reliability Trade-offs
 ```python
 # Fallback strategy hierarchy:
-1. ULTRA_FAST_NO_STEALTH → NO_STEALTH (on navigation failure)
+1. NO_STEALTH → MINIMAL_STEALTH (on navigation failure)
 2. Optimized profiles → Standard profiles (on extraction failure)
 3. All profiles → Legacy individual scrapers (on architecture failure)
 ```
@@ -1094,7 +1267,49 @@ crontab -e
 ### Performance Target Validation Matrix
 
 | Test Class | Target Metric | Validation Method | Success Criteria |
-|------------|---------------|-------------------|------------------|
+|### Projected Improvements
+Based on architectural analysis and bottleneck identification:
+
+| Profile | Current | Target | Improvement |
+|---------|---------|--------|-------------|
+| NO_STEALTH | ~10s | 1-2s | 80-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% |---|### Projected Improvements
+Based on architectural analysis and bottleneck identification:
+
+| Profile | Current | Target | Improvement |
+|---------|---------|--------|-------------|
+| NO_STEALTH | ~10s | 1-2s | 80-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% |------|### Projected Improvements
+Based on architectural analysis and bottleneck identification:
+
+| Profile | Current | Target | Improvement |
+|---------|---------|--------|-------------|
+| NO_STEALTH | ~10s | 1-2s | 80-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% |### Projected Improvements
+Based on architectural analysis and bottleneck identification:
+
+| Profile | Current | Target | Improvement |
+|---------|---------|--------|-------------|
+| NO_STEALTH | ~10s | 1-2s | 80-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% |-|### Projected Improvements
+Based on architectural analysis and bottleneck identification:
+
+| Profile | Current | Target | Improvement |
+|---------|---------|--------|-------------|
+| NO_STEALTH | ~10s | 1-2s | 80-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% |### Projected Improvements
+Based on architectural analysis and bottleneck identification:
+
+| Profile | Current | Target | Improvement |
+|---------|---------|--------|-------------|
+| NO_STEALTH | ~10s | 1-2s | 80-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% ||
 | `test_ultra_fast_no_stealth_target` | <2s extraction | Direct timing assertion | `duration < 2.0` |
 | `test_minimal_stealth_optimization_target` | <12s extraction | Direct timing assertion | `duration < 12.0` |
 | `test_maximum_stealth_optimization_target` | <35s extraction | Direct timing assertion | `duration < 35.0` |
@@ -1104,6 +1319,20 @@ crontab -e
 
 This comprehensive testing structure ensures that performance optimizations can be measured, validated, and monitored throughout the development process while maintaining extraction accuracy and reliability.
 
+---
+
+## Anti-Patterns to Avoid
+- ❌ Don't create new profiles when optimizing existing ones works better
+- ❌ Don't skip validation because "it should work" - always test performance targets
+- ❌ Don't mix DOM analysis/development code with production scraper methods
+- ❌ Don't use zero delays completely - maintain minimum detection avoidance
+- ❌ Don't hardcode values that should be environment configurable
+- ❌ Don't catch all exceptions - be specific about fallback conditions
+- ❌ Don't remove BrokenPipeError resilience considerations
+- ❌ Don't bypass the centralized stealth architecture - use it properly
+
+---
+
 ## Expected Performance Outcomes
 
 ### Projected Improvements
@@ -1112,8 +1341,36 @@ Based on architectural analysis and bottleneck identification:
 | Profile | Current | Target | Improvement |
 |---------|---------|--------|-------------|
 | NO_STEALTH | ~10s | 1-2s | 80-90% |
-| MINIMAL_STEALTH | 60-90s | 8-12s | 85-90% |
-| MAXIMUM_STEALTH | 250-350s | 25-35s | 85-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% ||### Projected Improvements
+Based on architectural analysis and bottleneck identification:
+
+| Profile | Current | Target | Improvement |
+|---------|---------|--------|-------------|
+| NO_STEALTH | ~10s | 1-2s | 80-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% ||### Projected Improvements
+Based on architectural analysis and bottleneck identification:
+
+| Profile | Current | Target | Improvement |
+|---------|---------|--------|-------------|
+| NO_STEALTH | ~10s | 1-2s | 80-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% ||### Projected Improvements
+Based on architectural analysis and bottleneck identification:
+
+| Profile | Current | Target | Improvement |
+|---------|---------|--------|-------------|
+| NO_STEALTH | ~10s | 1-2s | 80-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% |----|### Projected Improvements
+Based on architectural analysis and bottleneck identification:
+
+| Profile | Current | Target | Improvement |
+|---------|---------|--------|-------------|
+| NO_STEALTH | ~10s | 1-2s | 80-90% |
+| MINIMAL_STEALTH | 60-90s | 8-10s | 85-90% |
+| MAXIMUM_STEALTH | 250-350s | 25-30s | 85-90% |
 
 ### Business Impact
 - **User Experience**: Transform 5+ minute workflows into sub-30 second operations
