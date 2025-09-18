@@ -53,48 +53,48 @@ class StealthProfile:
 
     @classmethod
     def NO_STEALTH(cls) -> "StealthProfile":
-        """Maximum speed profile with minimal stealth (50s target)."""
+        """Optimized NO_STEALTH profile for sub-2s extraction."""
         return cls(
             name="NO_STEALTH",
             navigation=NavigationMode.DIRECT,
             delays=DelayConfig(
-                base=(0.1, 0.3),
-                reading=(0.2, 0.5),
-                navigation=(0.1, 0.3),
-                typing=(0.01, 0.03),
-                scroll=(0.1, 0.3),
+                base=(0.0, 0.05),  # Reduced from (0.1, 0.3)
+                reading=(0.0, 0.1),  # Reduced from (0.2, 0.5)
+                navigation=(0.0, 0.05),  # Reduced from (0.1, 0.3)
+                typing=(0.0, 0.01),  # Reduced from (0.01, 0.03)
+                scroll=(0.0, 0.05),  # Reduced from (0.1, 0.3)
             ),
-            simulation=SimulationLevel.NONE,
-            lazy_loading=False,  # Disable for maximum speed
+            simulation=SimulationLevel.NONE,  # Already optimized
+            lazy_loading=False,  # Already optimized
             telemetry=True,
-            enable_fingerprint_masking=False,
-            session_warming=False,
-            max_concurrent_profiles=5,
-            rate_limit_per_minute=10,
-            session_rotation_threshold=20,
+            enable_fingerprint_masking=False,  # Disable for maximum speed
+            session_warming=False,  # Skip warming for speed
+            max_concurrent_profiles=10,  # Higher concurrency
+            rate_limit_per_minute=30,  # Aggressive rate limit
+            session_rotation_threshold=50,  # Less frequent rotation
         )
 
     @classmethod
     def MINIMAL_STEALTH(cls) -> "StealthProfile":
-        """Balanced profile for production use (75s target)."""
+        """Optimized balanced profile for 8-10s extraction."""
         return cls(
             name="MINIMAL_STEALTH",
             navigation=NavigationMode.DIRECT,
             delays=DelayConfig(
-                base=(0.5, 1.0),
-                reading=(0.5, 1.5),
-                navigation=(0.3, 0.8),
-                typing=(0.03, 0.08),
-                scroll=(0.3, 0.6),
+                base=(0.1, 0.3),  # Reduced from (0.5, 1.0)
+                reading=(0.2, 0.6),  # Reduced from (0.5, 1.5)
+                navigation=(0.1, 0.3),  # Reduced from (0.3, 0.8)
+                typing=(0.01, 0.04),  # Reduced from (0.03, 0.08)
+                scroll=(0.1, 0.3),  # Reduced from (0.3, 0.6)
             ),
             simulation=SimulationLevel.BASIC,
             lazy_loading=True,
             telemetry=True,
             enable_fingerprint_masking=True,
             session_warming=False,
-            max_concurrent_profiles=3,
-            rate_limit_per_minute=3,
-            session_rotation_threshold=10,
+            max_concurrent_profiles=5,  # Increased throughput
+            rate_limit_per_minute=6,  # Doubled rate limit
+            session_rotation_threshold=15,  # Increased threshold
         )
 
     @classmethod
@@ -122,25 +122,25 @@ class StealthProfile:
 
     @classmethod
     def MAXIMUM_STEALTH(cls) -> "StealthProfile":
-        """Maximum stealth profile matching current system (295s)."""
+        """Optimized maximum stealth for 25-30s extraction."""
         return cls(
             name="MAXIMUM_STEALTH",
-            navigation=NavigationMode.SEARCH_FIRST,
+            navigation=NavigationMode.DIRECT,  # CRITICAL: Switch from SEARCH_FIRST
             delays=DelayConfig(
-                base=(1.5, 4.0),
-                reading=(2.0, 6.0),
-                navigation=(1.0, 3.0),
-                typing=(0.05, 0.15),
-                scroll=(0.5, 1.5),
+                base=(0.5, 1.5),  # Reduced from (1.5, 4.0)
+                reading=(1.0, 2.5),  # Reduced from (2.0, 6.0)
+                navigation=(0.3, 1.0),  # Reduced from (1.0, 3.0)
+                typing=(0.02, 0.08),  # Reduced from (0.05, 0.15)
+                scroll=(0.2, 0.8),  # Reduced from (0.5, 1.5)
             ),
-            simulation=SimulationLevel.COMPREHENSIVE,
+            simulation=SimulationLevel.MODERATE,  # Reduced from COMPREHENSIVE
             lazy_loading=True,
             telemetry=True,
             enable_fingerprint_masking=True,
             session_warming=True,
             max_concurrent_profiles=3,
-            rate_limit_per_minute=1,
-            session_rotation_threshold=5,
+            rate_limit_per_minute=2,  # Increased from 1
+            session_rotation_threshold=8,  # Increased from 5
         )
 
     def to_legacy_config(self) -> StealthConfig:
