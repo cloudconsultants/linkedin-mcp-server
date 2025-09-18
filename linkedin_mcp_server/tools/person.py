@@ -45,7 +45,7 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
         # Construct LinkedIn URL
         linkedin_url = f"https://www.linkedin.com/in/{linkedin_username}/"
 
-        # Set environment for optimal performance
+        # STRATEGIC: Use NO_STEALTH for minimal extraction (safe, doesn't break session)
         os.environ["STEALTH_PROFILE"] = "NO_STEALTH"
         os.environ["USE_NEW_STEALTH"] = "true"
 
@@ -103,6 +103,7 @@ async def get_person_profile_minimal(linkedin_username: str) -> Dict[str, Any]:
             "stealth_system": "NEW (centralized)",
             "stealth_profile": "NO_STEALTH",
             "scraping_mode": "minimal",
+            "strategy": "Optimized for speed (safe extraction)",
         }
         return result
 
@@ -139,8 +140,8 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
         # Construct LinkedIn URL
         linkedin_url = f"https://www.linkedin.com/in/{linkedin_username}/"
 
-        # Set environment for optimal performance (match .env settings)
-        os.environ["STEALTH_PROFILE"] = "NO_STEALTH"
+        # STRATEGIC: Use MINIMAL_STEALTH for full extraction (navigation required, needs stealth)
+        os.environ["STEALTH_PROFILE"] = "MINIMAL_STEALTH"
         os.environ["USE_NEW_STEALTH"] = "true"
 
         # Start browser directly (like working test script)
@@ -195,8 +196,9 @@ async def get_person_profile(linkedin_username: str) -> Dict[str, Any]:
         result["_performance"] = {
             "duration_seconds": round(duration, 1),
             "stealth_system": "NEW (centralized)",
-            "stealth_profile": "NO_STEALTH",
+            "stealth_profile": "MINIMAL_STEALTH",
             "scraping_mode": "comprehensive",
+            "strategy": "Balanced speed/stealth (session protection)",
         }
         return result
 

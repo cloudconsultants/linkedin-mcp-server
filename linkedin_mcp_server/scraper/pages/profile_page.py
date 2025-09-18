@@ -15,11 +15,29 @@ logger = logging.getLogger(__name__)
 
 
 class ProfilePageScraper(LinkedInPageScraper):
-    """LinkedIn profile page scraper using centralized stealth architecture.
+    """Ultra-optimized profile scraper with speed-first selector hierarchy.
 
     Follows the PRP centralized_stealth_architecture_redesign_FINAL.md pattern
     with restored working selectors for optimal performance.
     """
+
+    # Speed-optimized selector hierarchy (fastest first)
+    FAST_SELECTORS = {
+        "name": [
+            "h1.text-heading-xlarge",  # Fastest, most reliable
+            ".pv-text-details__left-panel h1",
+            ".ph5.pb5 h1",
+        ],
+        "headline": [
+            ".text-body-medium.break-words",  # Direct class match
+            ".pv-text-details__left-panel .text-body-medium",
+            ".ph5 .text-body-medium",
+        ],
+        "location": [
+            ".text-body-small.inline.t-black--light.break-words",
+            ".pv-text-details__left-panel .text-body-small",
+        ],
+    }
 
     def get_page_type(self) -> PageType:
         """Get the page type for profile scraping."""
@@ -70,7 +88,7 @@ class ProfilePageScraper(LinkedInPageScraper):
 
         # Pure extraction - no stealth operations, page is already prepared
         if PersonScrapingFields.BASIC_INFO in fields:
-            await self._extract_basic_info(page, person)
+            await self._extract_basic_info_optimized(page, person)
 
         if PersonScrapingFields.EXPERIENCE in fields:
             await self._extract_experiences(page, person)
@@ -100,72 +118,109 @@ class ProfilePageScraper(LinkedInPageScraper):
         """Legacy method name for compatibility."""
         return await super().scrape_page(page, url, fields=fields)
 
-    async def _extract_basic_info(self, page: Page, person: Person) -> None:
-        """Extract basic info using successful selectors + improvements."""
+    async def _fast_extract_text(self, page, selectors: list[str]) -> Optional[str]:
+        """Extract text using fastest available selector."""
+        for selector in selectors:
+            try:
+                element = page.locator(selector).first
+                if await element.count() > 0:
+                    text = await element.text_content(timeout=1000)
+                    if text and text.strip():
+                        return text.strip()
+            except Exception:
+                continue
+        return None
+
+    async def _extract_basic_info_optimized(self, page: Page, person: Person) -> None:
+        """Ultra-fast basic info extraction using speed-first selectors."""
+
+        # Use fastest selector that finds content
+        for field, selectors in self.FAST_SELECTORS.items():
+            for selector in selectors:
+                try:
+                    element = page.locator(selector).first
+                    if await element.count() > 0:
+                        text = await element.text_content(timeout=1000)
+                        if text and text.strip():
+                            setattr(person, field, text.strip())
+                            break  # Use first working selector, skip others
+                except Exception:
+                    continue
+
+        # Fall back to original implementation for other fields
+        await self._extract_basic_info_legacy(page, person)
+
+    async def _extract_basic_info_legacy(self, page: Page, person: Person) -> None:
+        """Original basic info extraction as fallback."""
         try:
-            # Name - with filtering to avoid getting headline
-            name_selectors = ["h1.text-heading-xlarge", "main h1", "h1"]
-            for selector in name_selectors:
-                try:
-                    name = await page.locator(selector).first.inner_text(timeout=500)
-                    # Filter out names that are clearly headlines
-                    if (
-                        name
-                        and len(name) < 100
-                        and not any(
-                            term in name.lower()
-                            for term in [
-                                "consultant",
-                                "developer",
-                                "manager",
-                                "director",
-                                "specialist",
-                                "expert",
-                                "certification",
-                                "|",
-                                "salesforce",
-                                "automation",
-                            ]
+            # Name - with filtering to avoid getting headline (if not already set)
+            if not person.name:
+                name_selectors = ["h1.text-heading-xlarge", "main h1", "h1"]
+                for selector in name_selectors:
+                    try:
+                        name = await page.locator(selector).first.inner_text(
+                            timeout=500
                         )
-                    ):
-                        person.name = name.strip()
-                        break
-                except Exception:
-                    continue
+                        # Filter out names that are clearly headlines
+                        if (
+                            name
+                            and len(name) < 100
+                            and not any(
+                                term in name.lower()
+                                for term in [
+                                    "consultant",
+                                    "developer",
+                                    "manager",
+                                    "director",
+                                    "specialist",
+                                    "expert",
+                                    "certification",
+                                    "|",
+                                    "salesforce",
+                                    "automation",
+                                ]
+                            )
+                        ):
+                            person.name = name.strip()
+                            break
+                    except Exception:
+                        continue
 
-            # Headline
-            headline_selectors = [
-                ".text-body-medium.break-words",
-                ".pv-text-details__left-panel .text-body-medium",
-            ]
-            for selector in headline_selectors:
-                try:
-                    headline = await page.locator(selector).first.inner_text(
-                        timeout=2000
-                    )
-                    if headline.strip():
-                        person.headline = headline.strip()
-                        break
-                except Exception:
-                    continue
+            # Headline (if not already set)
+            if not person.headline:
+                headline_selectors = [
+                    ".text-body-medium.break-words",
+                    ".pv-text-details__left-panel .text-body-medium",
+                ]
+                for selector in headline_selectors:
+                    try:
+                        headline = await page.locator(selector).first.inner_text(
+                            timeout=2000
+                        )
+                        if headline.strip():
+                            person.headline = headline.strip()
+                            break
+                    except Exception:
+                        continue
 
-            # Location
-            location_selectors = [
-                ".text-body-small.inline.t-black--light",
-                ".pv-text-details__right-panel .text-body-small",
-            ]
-            for selector in location_selectors:
-                try:
-                    location = await page.locator(selector).first.inner_text(
-                        timeout=2000
-                    )
-                    if location and any(
-                        char in location for char in [",", "Area", "Region"]
-                    ):
-                        person.location = location.strip()
-                        break
-                except Exception:
-                    continue
+            # Location (if not already set)
+            if not person.location:
+                location_selectors = [
+                    ".text-body-small.inline.t-black--light",
+                    ".pv-text-details__right-panel .text-body-small",
+                ]
+                for selector in location_selectors:
+                    try:
+                        location = await page.locator(selector).first.inner_text(
+                            timeout=2000
+                        )
+                        if location and any(
+                            char in location for char in [",", "Area", "Region"]
+                        ):
+                            person.location = location.strip()
+                            break
+                    except Exception:
+                        continue
 
             # About section - working selector from improvements
             about_selectors = [

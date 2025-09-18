@@ -74,7 +74,7 @@ class NavigationStrategy:
         url: str,
         profile: StealthProfile,
     ) -> None:
-        """Direct navigation to LinkedIn URL (fast path).
+        """Ultra-optimized direct navigation.
 
         This is the optimized navigation path that goes directly to the URL,
         achieving significant speed improvements over search-first approach.
@@ -82,8 +82,11 @@ class NavigationStrategy:
         logger.debug(f"Direct navigation to: {url}")
 
         try:
-            # Simple direct navigation with configurable timeout
-            timeout = 30000 if profile.simulation.value != "none" else 5000
+            # Ultra-fast timeout for optimized NO_STEALTH profile
+            if profile.simulation.value == "none":
+                timeout = 1000  # 1 second maximum for NO_STEALTH
+            else:
+                timeout = 5000  # Standard timeout for other profiles
 
             await page.goto(
                 url,
@@ -91,7 +94,7 @@ class NavigationStrategy:
                 timeout=timeout,
             )
 
-            # Brief delay based on profile
+            # Skip delays for optimized NO_STEALTH profile
             if profile.simulation.value != "none":
                 nav_delays = profile.delays.navigation
                 delay = random.uniform(nav_delays[0], nav_delays[1])
